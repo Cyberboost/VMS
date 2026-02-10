@@ -74,11 +74,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'surplus:approve',
     'reports:read',
   ],
-  [UserRole.Driver]: [
-    'vehicles:read',
-    'incidents:read',
-    'incidents:create',
-  ],
+  [UserRole.Driver]: ['vehicles:read', 'incidents:read', 'incidents:create'],
   [UserRole.Viewer]: [
     'vehicles:read',
     'drivers:read',

@@ -12,7 +12,11 @@ import {
 export const vehicleSchema = z.object({
   vehicleId: z.string().min(1, 'Vehicle ID is required'),
   vin: z.string().min(17, 'VIN must be 17 characters').max(17),
-  year: z.number().int().min(1900).max(new Date().getFullYear() + 1),
+  year: z
+    .number()
+    .int()
+    .min(1900)
+    .max(new Date().getFullYear() + 1),
   make: z.string().min(1, 'Make is required'),
   model: z.string().min(1, 'Model is required'),
   department: z.string().min(1, 'Department is required'),

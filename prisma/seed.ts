@@ -1,4 +1,13 @@
-import { PrismaClient, UserRole, VehicleStatus, DriverStatus, IncidentSeverity, IncidentStatus, SurplusCondition, SurplusStatus } from '@prisma/client'
+import {
+  PrismaClient,
+  UserRole,
+  VehicleStatus,
+  DriverStatus,
+  IncidentSeverity,
+  IncidentStatus,
+  SurplusCondition,
+  SurplusStatus,
+} from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()

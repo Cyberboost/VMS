@@ -21,12 +21,11 @@ export function KPICard({ title, value, icon: Icon, description, trend }: KPICar
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
         {trend && (
           <p className={`text-xs ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {trend.isPositive ? '+' : ''}{trend.value}% from last month
+            {trend.isPositive ? '+' : ''}
+            {trend.value}% from last month
           </p>
         )}
       </CardContent>

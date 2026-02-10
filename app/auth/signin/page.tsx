@@ -78,17 +78,13 @@ function SignInForm() {
               disabled={loading}
             />
           </div>
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
         <div className="mt-6 border-t pt-6">
-          <p className="text-sm text-muted-foreground">
-            Demo credentials:
-          </p>
+          <p className="text-sm text-muted-foreground">Demo credentials:</p>
           <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
             <li>admin@fleet.gov / password123</li>
             <li>manager@fleet.gov / password123</li>

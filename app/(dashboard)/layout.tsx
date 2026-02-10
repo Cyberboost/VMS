@@ -3,11 +3,7 @@ import { Header } from '@/components/layout/header'
 import { auth, signOut } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
 
   if (!session?.user) {
@@ -30,9 +26,7 @@ export default async function DashboardLayout({
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header user={user} onSignOut={handleSignOut} />
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto bg-slate-50 p-6">{children}</main>
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
 import { getVehicleById } from '@/lib/actions/vehicle-actions'
@@ -17,11 +17,7 @@ import {
 } from '@/components/ui/table'
 import { format } from 'date-fns'
 
-export default async function VehicleDetailPage({
-  params,
-}: {
-  params: { id: string }
-}) {
+export default async function VehicleDetailPage({ params }: { params: { id: string } }) {
   const vehicle = await getVehicleById(params.id)
 
   if (!vehicle) {
@@ -125,7 +121,9 @@ export default async function VehicleDetailPage({
               <div>
                 <p className="text-sm font-medium">Last DOT Inspection</p>
                 <p className="text-2xl font-bold">
-                  {vehicle.lastDOTDate ? format(new Date(vehicle.lastDOTDate), 'MMM d, yyyy') : 'Not recorded'}
+                  {vehicle.lastDOTDate
+                    ? format(new Date(vehicle.lastDOTDate), 'MMM d, yyyy')
+                    : 'Not recorded'}
                 </p>
               </div>
               <div>

@@ -125,10 +125,7 @@ export async function updateSurplusRequestStatus(id: string, status: SurplusStat
   return request
 }
 
-export async function getSurplusRequests(filters?: {
-  status?: SurplusStatus
-  vehicleId?: string
-}) {
+export async function getSurplusRequests(filters?: { status?: SurplusStatus; vehicleId?: string }) {
   const session = await auth()
   if (!session?.user) {
     throw new Error('Unauthorized')

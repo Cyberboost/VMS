@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -105,20 +105,20 @@ export default async function ReportsPage() {
               <div>
                 <p className="text-sm font-medium">Vehicles Requiring Replacement</p>
                 <p className="text-2xl font-bold text-orange-600">{data.replacementsDue}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Target year: {new Date().getFullYear()} or earlier
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium">Fleet Age Analysis</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Average fleet age is {data.avgVehicleAge} years. Industry standard recommends
                   replacement every 8-10 years for optimal efficiency.
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium">Incident Impact</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {data.totalIncidents} incidents recorded. Regular maintenance and timely
                   replacements can reduce incident rates.
                 </p>

@@ -9,11 +9,7 @@ export const metadata: Metadata = {
   description: 'Fleet Management Dashboard Application',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="font-sans">{children}</body>

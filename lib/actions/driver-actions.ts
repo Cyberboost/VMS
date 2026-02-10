@@ -20,7 +20,9 @@ export async function createDriver(data: unknown) {
   const driver = await prisma.driver.create({
     data: {
       ...validatedData,
-      cdlExpiration: validatedData.cdlExpiration ? new Date(validatedData.cdlExpiration) : undefined,
+      cdlExpiration: validatedData.cdlExpiration
+        ? new Date(validatedData.cdlExpiration)
+        : undefined,
     },
   })
 
@@ -52,7 +54,9 @@ export async function updateDriver(id: string, data: unknown) {
     where: { id },
     data: {
       ...validatedData,
-      cdlExpiration: validatedData.cdlExpiration ? new Date(validatedData.cdlExpiration) : undefined,
+      cdlExpiration: validatedData.cdlExpiration
+        ? new Date(validatedData.cdlExpiration)
+        : undefined,
     },
   })
 

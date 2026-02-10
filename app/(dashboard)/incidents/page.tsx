@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic'
 
 import { getIncidents } from '@/lib/actions/incident-actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

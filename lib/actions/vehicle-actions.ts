@@ -20,7 +20,9 @@ export async function createVehicle(data: unknown) {
   const vehicle = await prisma.vehicle.create({
     data: {
       ...validatedData,
-      inServiceDate: validatedData.inServiceDate ? new Date(validatedData.inServiceDate) : undefined,
+      inServiceDate: validatedData.inServiceDate
+        ? new Date(validatedData.inServiceDate)
+        : undefined,
       lastDOTDate: validatedData.lastDOTDate ? new Date(validatedData.lastDOTDate) : undefined,
     },
   })
@@ -53,7 +55,9 @@ export async function updateVehicle(id: string, data: unknown) {
     where: { id },
     data: {
       ...validatedData,
-      inServiceDate: validatedData.inServiceDate ? new Date(validatedData.inServiceDate) : undefined,
+      inServiceDate: validatedData.inServiceDate
+        ? new Date(validatedData.inServiceDate)
+        : undefined,
       lastDOTDate: validatedData.lastDOTDate ? new Date(validatedData.lastDOTDate) : undefined,
     },
   })

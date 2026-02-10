@@ -33,13 +33,13 @@ A modern, production-ready Fleet Management web application built with Next.js 1
 
 ## 🔑 User Roles & Permissions
 
-| Role | Permissions |
-|------|-------------|
-| **Admin** | Full access to all features |
-| **FleetManager** | Manage vehicles, drivers, incidents, surplus, and reports |
-| **Supervisor** | Approve surplus requests, view reports, edit limited vehicle fields |
-| **Driver** | View assigned vehicle, submit incident requests |
-| **Viewer** | Read-only access to all modules |
+| Role             | Permissions                                                         |
+| ---------------- | ------------------------------------------------------------------- |
+| **Admin**        | Full access to all features                                         |
+| **FleetManager** | Manage vehicles, drivers, incidents, surplus, and reports           |
+| **Supervisor**   | Approve surplus requests, view reports, edit limited vehicle fields |
+| **Driver**       | View assigned vehicle, submit incident requests                     |
+| **Viewer**       | Read-only access to all modules                                     |
 
 ## 🗄️ Data Models
 
@@ -61,22 +61,26 @@ A modern, production-ready Fleet Management web application built with Next.js 1
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/Cyberboost/VMS.git
    cd VMS
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env
    ```
-   
+
    Edit `.env` and configure:
+
    ```env
    DATABASE_URL="postgresql://user:password@localhost:5432/fleet_db"
    NEXTAUTH_SECRET="your-secret-key-here"
@@ -84,11 +88,13 @@ A modern, production-ready Fleet Management web application built with Next.js 1
    ```
 
    Generate a secure secret:
+
    ```bash
    openssl rand -base64 32
    ```
 
 4. **Set up the database**
+
    ```bash
    # Generate Prisma client
    npm run prisma:generate
@@ -101,6 +107,7 @@ A modern, production-ready Fleet Management web application built with Next.js 1
    ```
 
 5. **Start the development server**
+
    ```bash
    npm run dev
    ```
@@ -110,11 +117,11 @@ A modern, production-ready Fleet Management web application built with Next.js 1
 
 ### Demo Credentials
 
-| Email | Password | Role |
-|-------|----------|------|
-| admin@fleet.gov | password123 | Admin |
+| Email             | Password    | Role         |
+| ----------------- | ----------- | ------------ |
+| admin@fleet.gov   | password123 | Admin        |
 | manager@fleet.gov | password123 | FleetManager |
-| viewer@fleet.gov | password123 | Viewer |
+| viewer@fleet.gov  | password123 | Viewer       |
 
 ## 📦 Project Structure
 
@@ -168,6 +175,7 @@ A modern, production-ready Fleet Management web application built with Next.js 1
 
 3. **Configure environment variables**
    Add these in Vercel dashboard:
+
    ```
    DATABASE_URL=your-postgres-connection-string
    NEXTAUTH_SECRET=your-secret-key
@@ -179,6 +187,7 @@ A modern, production-ready Fleet Management web application built with Next.js 1
    - Connection string will be automatically added
 
 5. **Deploy**
+
    ```bash
    vercel deploy
    ```
@@ -222,17 +231,19 @@ The application includes an AI copilot placeholder that can be integrated with O
 ### To Enable AI Features:
 
 1. **Add OpenAI API key to `.env`**
+
    ```env
    OPENAI_API_KEY=your-openai-api-key
    ```
 
 2. **Create AI service layer**
+
    ```typescript
    // lib/ai-service.ts
    import OpenAI from 'openai'
 
    const openai = new OpenAI({
-     apiKey: process.env.OPENAI_API_KEY
+     apiKey: process.env.OPENAI_API_KEY,
    })
 
    export async function askFleetCopilot(question: string) {
@@ -282,6 +293,7 @@ Contributions are welcome! Please follow these steps:
 ## 📞 Support
 
 For issues and questions:
+
 - Open an issue on GitHub
 - Contact the development team
 
@@ -295,4 +307,3 @@ For issues and questions:
 ---
 
 **Built for modern government fleet management** 🚗 🏛️
- 

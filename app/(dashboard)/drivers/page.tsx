@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic'
 
 import { getDrivers } from '@/lib/actions/driver-actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -67,13 +67,9 @@ export default async function DriversPage() {
                     <TableCell>{driver.email}</TableCell>
                     <TableCell>{driver.phone || 'N/A'}</TableCell>
                     <TableCell>{driver.department}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {driver.cdlNumber || 'N/A'}
-                    </TableCell>
+                    <TableCell className="font-mono text-xs">{driver.cdlNumber || 'N/A'}</TableCell>
                     <TableCell>
-                      {driver.cdlExpiration
-                        ? format(new Date(driver.cdlExpiration), 'PP')
-                        : 'N/A'}
+                      {driver.cdlExpiration ? format(new Date(driver.cdlExpiration), 'PP') : 'N/A'}
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={driver.status} />

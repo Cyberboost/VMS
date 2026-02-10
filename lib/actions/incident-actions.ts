@@ -118,9 +118,7 @@ export async function getIncidents(filters?: {
   const where: any = {}
 
   if (filters?.search) {
-    where.OR = [
-      { description: { contains: filters.search, mode: 'insensitive' } },
-    ]
+    where.OR = [{ description: { contains: filters.search, mode: 'insensitive' } }]
   }
 
   if (filters?.department) {
