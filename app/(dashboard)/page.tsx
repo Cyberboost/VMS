@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { prisma } from '@/lib/db'
+import prisma from '@/lib/prisma'
 import { KPICard } from '@/components/ui/kpi-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Car, Wrench, AlertTriangle, Calendar, IdCard, XCircle } from 'lucide-react'
