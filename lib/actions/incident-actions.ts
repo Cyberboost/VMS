@@ -1,6 +1,6 @@
 'use server'
 
-import { prisma } from '@/lib/db'
+import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { requirePermission } from '@/lib/rbac'
 import { incidentSchema } from '@/lib/validators'
