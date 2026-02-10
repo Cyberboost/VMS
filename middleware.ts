@@ -1,29 +1,40 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
-export default auth((req) => {
-  const { pathname } = req.nextUrl
-  const isAuthenticated = !!req.auth
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-  // Public routes
-  const publicRoutes = ['/auth/signin']
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route))
+  // Define paths that should never require authentication
+  const publicPaths = [
+    '/api/auth',    // NextAuth API routes
+    '/auth',        // Auth UI pages (signin, etc.)
+    '/_next',       // Next.js internals
+    '/favicon.ico', // Favicon
+  ]
 
-  // Redirect to sign-in if not authenticated and trying to access protected route
-  if (!isAuthenticated && !isPublicRoute) {
-    const signInUrl = new URL('/auth/signin', req.url)
+  // Skip auth check for public paths
+  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))
+  if (isPublicPath) {
+    return NextResponse.next()
+  }
+
+  // Check for authentication token
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  })
+
+  // Redirect unauthenticated users to sign-in
+  if (!token) {
+    const signInUrl = new URL('/auth/signin', request.url)
     signInUrl.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(signInUrl)
   }
 
-  // Redirect to dashboard if authenticated and trying to access auth pages
-  if (isAuthenticated && pathname.startsWith('/auth/')) {
-    return NextResponse.redirect(new URL('/', req.url))
-  }
-
   return NextResponse.next()
-})
+}
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
