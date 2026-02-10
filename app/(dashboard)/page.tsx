@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { prisma } from '@/lib/db'
 import { KPICard } from '@/components/ui/kpi-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

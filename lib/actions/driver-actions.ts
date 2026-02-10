@@ -88,7 +88,7 @@ export async function deleteDriver(id: string) {
       entityType: 'Driver',
       entityId: driver.id,
       action: 'DELETE',
-      changes: null,
+      changes: undefined,
       actorId: session.user.id,
     },
   })

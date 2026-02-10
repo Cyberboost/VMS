@@ -19,11 +19,17 @@ export default async function DashboardLayout({
     await signOut()
   }
 
+  const user = {
+    name: session.user.name || '',
+    email: session.user.email || '',
+    role: session.user.role,
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header user={session.user} onSignOut={handleSignOut} />
+        <Header user={user} onSignOut={handleSignOut} />
         <main className="flex-1 overflow-y-auto bg-slate-50 p-6">
           {children}
         </main>

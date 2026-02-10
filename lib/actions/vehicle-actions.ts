@@ -90,7 +90,7 @@ export async function deleteVehicle(id: string) {
       entityType: 'Vehicle',
       entityId: vehicle.id,
       action: 'DELETE',
-      changes: null,
+      changes: undefined,
       actorId: session.user.id,
     },
   })

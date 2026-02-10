@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { notFound } from 'next/navigation'
 import { getVehicleById } from '@/lib/actions/vehicle-actions'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'

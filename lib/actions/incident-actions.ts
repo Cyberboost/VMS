@@ -89,7 +89,7 @@ export async function deleteIncident(id: string) {
       entityType: 'Incident',
       entityId: incident.id,
       action: 'DELETE',
-      changes: null,
+      changes: undefined,
       actorId: session.user.id,
     },
   })

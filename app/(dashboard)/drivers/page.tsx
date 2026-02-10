@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { getDrivers } from '@/lib/actions/driver-actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
