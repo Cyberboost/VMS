@@ -16,16 +16,18 @@ export async function createSurplusRequest(data: unknown) {
 
   requirePermission(session.user.role, 'surplus:create')
 
+  const orgId = session.user.orgId
+
   const validatedData = surplusRequestSchema.parse(data)
 
   const request = await prisma.surplusRequest.create({
     data: {
       ...validatedData,
-      orgId: session.user.orgId,
+      orgId,
     },
   })
 
-  await auditCreate('SurplusRequest', request.id, validatedData, session.user.id, session.user.orgId)
+  await auditCreate('SurplusRequest', request.id, validatedData, session.user.id, orgId)
 
   revalidatePath('/surplus')
   revalidatePath(`/vehicles/${validatedData.vehicleId}`)
