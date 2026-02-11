@@ -6,6 +6,7 @@ import { requirePermission } from '@/lib/rbac'
 import { driverSchema } from '@/lib/validators'
 import { revalidatePath } from 'next/cache'
 import { DriverStatus } from '@prisma/client'
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/audit'
 
 export async function createDriver(data: unknown) {
   const session = await auth()
@@ -15,26 +16,24 @@ export async function createDriver(data: unknown) {
 
   requirePermission(session.user.role, 'drivers:create')
 
+  const orgId = session.user.orgId
+  if (!orgId) {
+    throw new Error('Organization ID is required')
+  }
+
   const validatedData = driverSchema.parse(data)
 
   const driver = await prisma.driver.create({
     data: {
       ...validatedData,
+      orgId,
       cdlExpiration: validatedData.cdlExpiration
         ? new Date(validatedData.cdlExpiration)
-        : undefined,
+        : null,
     },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Driver',
-      entityId: driver.id,
-      action: 'CREATE',
-      changes: validatedData,
-      actorId: session.user.id,
-    },
-  })
+  await auditCreate('Driver', driver.id, validatedData, session.user.id, orgId)
 
   revalidatePath('/drivers')
   return driver
@@ -48,6 +47,11 @@ export async function updateDriver(id: string, data: unknown) {
 
   requirePermission(session.user.role, 'drivers:update')
 
+  const before = await prisma.driver.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Driver not found')
+  }
+
   const validatedData = driverSchema.partial().parse(data)
 
   const driver = await prisma.driver.update({
@@ -56,19 +60,11 @@ export async function updateDriver(id: string, data: unknown) {
       ...validatedData,
       cdlExpiration: validatedData.cdlExpiration
         ? new Date(validatedData.cdlExpiration)
-        : undefined,
+        : null,
     },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Driver',
-      entityId: driver.id,
-      action: 'UPDATE',
-      changes: validatedData,
-      actorId: session.user.id,
-    },
-  })
+  await auditUpdate('Driver', driver.id, before, validatedData, session.user.id, before.orgId)
 
   revalidatePath('/drivers')
   revalidatePath(`/drivers/${id}`)
@@ -83,19 +79,16 @@ export async function deleteDriver(id: string) {
 
   requirePermission(session.user.role, 'drivers:delete')
 
+  const before = await prisma.driver.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Driver not found')
+  }
+
   const driver = await prisma.driver.delete({
     where: { id },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Driver',
-      entityId: driver.id,
-      action: 'DELETE',
-      changes: undefined,
-      actorId: session.user.id,
-    },
-  })
+  await auditDelete('Driver', driver.id, before, session.user.id, before.orgId)
 
   revalidatePath('/drivers')
   return driver
