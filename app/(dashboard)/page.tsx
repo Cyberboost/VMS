@@ -1,276 +1,272 @@
-export const dynamic = 'force-dynamic'
-
-import { getDashboardKPIs, getRecentActivity } from '@/lib/actions/dashboard'
-import { getSessionOrgContext } from '@/lib/auth-utils'
-import { KPICard } from '@/components/ui/kpi-card'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Car,
-  Wrench,
+  CheckCircle,
   AlertTriangle,
-  Calendar,
-  DollarSign,
-  Shield,
-  TrendingUp,
-  Activity,
+  Package,
+  Plus,
+  FileText,
+  Inbox,
 } from 'lucide-react'
 
-export default async function DashboardPage() {
-  const context = await getSessionOrgContext()
-
-  if (!context?.orgId) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <p className="text-muted-foreground">Please set up an organization to view the dashboard</p>
-      </div>
-    )
+export default function DashboardPage() {
+  // Mock data for KPIs
+  const kpis = {
+    totalVehicles: 1247,
+    activeVehicles: 1102,
+    openIncidents: 23,
+    pendingSurplus: 8,
   }
 
-  const { kpis, fleetRiskScore, vehicleStats, incidentStats } = await getDashboardKPIs(
-    context.orgId
-  )
-  const recentActivity = await getRecentActivity(context.orgId, 10)
+  // Mock data for Recent Incidents
+  const recentIncidents = [
+    {
+      id: 'INC-001',
+      vehicle: 'VH-2847',
+      description: 'Engine warning light activated during route',
+      severity: 'Critical' as const,
+      status: 'Open' as const,
+      date: 'Feb 11, 2026',
+    },
+    {
+      id: 'INC-002',
+      vehicle: 'VH-1523',
+      description: 'Minor collision in parking lot',
+      severity: 'Medium' as const,
+      status: 'Under Review' as const,
+      date: 'Feb 10, 2026',
+    },
+    {
+      id: 'INC-003',
+      vehicle: 'VH-3891',
+      description: 'Brake system maintenance required',
+      severity: 'High' as const,
+      status: 'Action Required' as const,
+      date: 'Feb 10, 2026',
+    },
+    {
+      id: 'INC-004',
+      vehicle: 'VH-4102',
+      description: 'Tire pressure sensor malfunction',
+      severity: 'Low' as const,
+      status: 'Open' as const,
+      date: 'Feb 9, 2026',
+    },
+    {
+      id: 'INC-005',
+      vehicle: 'VH-2156',
+      description: 'Windshield chip needs repair',
+      severity: 'Low' as const,
+      status: 'Under Review' as const,
+      date: 'Feb 9, 2026',
+    },
+  ]
 
-  // Determine risk score color
-  const getRiskScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600'
-    if (score >= 60) return 'text-yellow-600'
-    return 'text-red-600'
+  // Severity badge styling
+  const getSeverityBadgeClass = (severity: string) => {
+    switch (severity) {
+      case 'Critical':
+        return 'bg-red-500 hover:bg-red-600 text-white border-transparent'
+      case 'High':
+        return 'bg-orange-500 hover:bg-orange-600 text-white border-transparent'
+      case 'Medium':
+        return 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent'
+      case 'Low':
+        return 'bg-blue-500 hover:bg-blue-600 text-white border-transparent'
+      default:
+        return ''
+    }
   }
 
-  const getTrendIcon = (direction?: 'up' | 'down' | 'neutral') => {
-    if (direction === 'up') return <TrendingUp className="h-4 w-4 text-green-600" />
-    if (direction === 'down') return <AlertTriangle className="h-4 w-4 text-red-600" />
-    return <Activity className="h-4 w-4 text-gray-600" />
+  // Status badge styling
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case 'Open':
+        return 'bg-blue-500 hover:bg-blue-600 text-white border-transparent'
+      case 'Under Review':
+        return 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent'
+      case 'Action Required':
+        return 'bg-orange-500 hover:bg-orange-600 text-white border-transparent'
+      default:
+        return ''
+    }
   }
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Fleet Overview</h1>
         <p className="text-muted-foreground">
-          Fleet Intelligence &amp; Accountability — City of Atlanta
+          Real-time fleet intelligence &amp; accountability dashboard
         </p>
       </div>
 
-      {/* Fleet Risk Score - Prominent Display */}
-      <Card className="border-2">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Fleet Risk Score</CardTitle>
-              <CardDescription>{kpis.fleetRiskScore.description}</CardDescription>
-            </div>
-            <div className={`text-6xl font-bold ${getRiskScoreColor(fleetRiskScore.score)}`}>
-              {fleetRiskScore.score}
-              <span className="text-2xl text-muted-foreground">/100</span>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Compliance</span>
-                <span className="font-bold">{fleetRiskScore.complianceScore}%</span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-200">
-                <div
-                  className="h-2 rounded-full bg-blue-600 transition-all"
-                  style={{ width: `${fleetRiskScore.complianceScore}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">40% weight</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Maintenance</span>
-                <span className="font-bold">{fleetRiskScore.maintenanceScore}%</span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-200">
-                <div
-                  className="h-2 rounded-full bg-green-600 transition-all"
-                  style={{ width: `${fleetRiskScore.maintenanceScore}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">30% weight</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Incidents</span>
-                <span className="font-bold">{fleetRiskScore.incidentScore}%</span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-200">
-                <div
-                  className="h-2 rounded-full bg-purple-600 transition-all"
-                  style={{ width: `${fleetRiskScore.incidentScore}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">30% weight</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Primary KPIs - 3x2 Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="cursor-pointer transition-all hover:shadow-lg">
+      {/* KPI Grid - 4 cards in a responsive row */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total Vehicles */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{kpis.openComplianceIssues.label}</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{kpis.openComplianceIssues.value}</div>
-              {getTrendIcon(kpis.openComplianceIssues.trend?.direction)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {kpis.openComplianceIssues.description}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer transition-all hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{kpis.accidents30Days.label}</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpis.accidents30Days.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {kpis.accidents30Days.description}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer transition-all hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{kpis.repeatOperators.label}</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpis.repeatOperators.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {kpis.repeatOperators.description}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer transition-all hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{kpis.pmOverdue.label}</CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{kpis.pmOverdue.value}</div>
-              {getTrendIcon(kpis.pmOverdue.trend?.direction)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">{kpis.pmOverdue.description}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer transition-all hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{kpis.surplusPipeline.label}</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
             <Car className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpis.surplusPipeline.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {kpis.surplusPipeline.description}
-            </p>
+            <div className="text-2xl font-bold">{kpis.totalVehicles}</div>
+            <p className="text-xs text-muted-foreground mt-1">Across all departments</p>
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer transition-all hover:shadow-lg">
+        {/* Active Vehicles */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{kpis.budgetReadiness.label}</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Vehicles</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpis.budgetReadiness.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {kpis.budgetReadiness.description}
+            <div className="text-2xl font-bold text-green-600">{kpis.activeVehicles}</div>
+            <p className="text-xs text-muted-foreground mt-1">Currently in service</p>
+          </CardContent>
+        </Card>
+
+        {/* Open Incidents */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Open Incidents</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{kpis.openIncidents}</div>
+            <p className="text-xs text-muted-foreground mt-1">+3 since last week</p>
+          </CardContent>
+        </Card>
+
+        {/* Pending Surplus Requests */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Surplus Requests</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{kpis.pendingSurplus}</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting review</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottom Section - Two-column responsive grid */}
+      <div className="grid gap-4 lg:grid-cols-5">
+        {/* Left: Recent Incidents Table (spans 3 cols) */}
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Incidents</CardTitle>
+              <CardDescription>Latest reported fleet incidents</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        ID
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Vehicle
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Description
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Severity
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Date
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentIncidents.map((incident) => (
+                      <tr key={incident.id} className="border-b last:border-0">
+                        <td className="py-3 px-4 text-sm font-medium">{incident.id}</td>
+                        <td className="py-3 px-4 text-sm">{incident.vehicle}</td>
+                        <td className="py-3 px-4 text-sm">{incident.description}</td>
+                        <td className="py-3 px-4">
+                          <Badge className={getSeverityBadgeClass(incident.severity)}>
+                            {incident.severity}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge className={getStatusBadgeClass(incident.status)}>
+                            {incident.status}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {incident.date}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Quick Actions Card (spans 2 cols) */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common fleet management tasks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Link href="/vehicles/new" className="block">
+                <Button variant="default" className="w-full justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Vehicle
+                </Button>
+              </Link>
+              <Link href="/incidents/new" className="block">
+                <Button variant="default" className="w-full justify-start">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Log Incident
+                </Button>
+              </Link>
+              <Link href="/surplus/new" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Package className="h-4 w-4 mr-2" />
+                  Create Surplus Request
+                </Button>
+              </Link>
+              <Link href="/reports" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Reports
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Empty State Placeholder — activate when no data is available */}
+      {false && (
+        <Card className="mt-6">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Inbox className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No data yet</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              Fleet data will appear here once connected.
             </p>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Secondary Info - Fleet Stats & Recent Activity */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Fleet Overview</CardTitle>
-            <CardDescription>Current fleet status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Total Vehicles</span>
-                <span className="text-sm font-bold">{vehicleStats.totalVehicles}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">In Service</span>
-                <span className="text-sm font-bold text-green-600">
-                  {vehicleStats.inServiceVehicles}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">In Repair</span>
-                <span className="text-sm font-bold text-yellow-600">
-                  {vehicleStats.inRepairVehicles}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Out of Service</span>
-                <span className="text-sm font-bold text-red-600">
-                  {vehicleStats.outOfServiceVehicles}
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-t pt-4">
-                <span className="text-sm font-medium">Fleet Availability</span>
-                <span className="text-sm font-bold">
-                  {vehicleStats.totalVehicles > 0
-                    ? Math.round((vehicleStats.inServiceVehicles / vehicleStats.totalVehicles) * 100)
-                    : 0}
-                  %
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest system updates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No recent activity</p>
-            ) : (
-              <div className="space-y-4">
-                {recentActivity.map((log) => (
-                  <div key={log.id} className="flex items-start gap-4 text-sm">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                      <Calendar className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="font-medium">
-                        {log.action} {log.entityType}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {log.actor?.name || 'System'} • {new Date(log.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   )
 }
