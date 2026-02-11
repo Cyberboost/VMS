@@ -21,9 +21,15 @@ export type Permission =
   | 'reports:read'
   | 'reports:export'
   | 'admin:access'
+  | 'compliance:read'
+  | 'compliance:manage'
+  | 'departments:read'
+  | 'departments:manage'
+  | 'maintenance:read'
+  | 'maintenance:manage'
 
 const rolePermissions: Record<UserRole, Permission[]> = {
-  [UserRole.Admin]: [
+  [UserRole.SUPER_ADMIN]: [
     'vehicles:read',
     'vehicles:create',
     'vehicles:update',
@@ -44,8 +50,42 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'reports:read',
     'reports:export',
     'admin:access',
+    'compliance:read',
+    'compliance:manage',
+    'departments:read',
+    'departments:manage',
+    'maintenance:read',
+    'maintenance:manage',
   ],
-  [UserRole.FleetManager]: [
+  [UserRole.ORG_ADMIN]: [
+    'vehicles:read',
+    'vehicles:create',
+    'vehicles:update',
+    'vehicles:delete',
+    'drivers:read',
+    'drivers:create',
+    'drivers:update',
+    'drivers:delete',
+    'incidents:read',
+    'incidents:create',
+    'incidents:update',
+    'incidents:delete',
+    'surplus:read',
+    'surplus:create',
+    'surplus:approve',
+    'surplus:update',
+    'surplus:delete',
+    'reports:read',
+    'reports:export',
+    'admin:access',
+    'compliance:read',
+    'compliance:manage',
+    'departments:read',
+    'departments:manage',
+    'maintenance:read',
+    'maintenance:manage',
+  ],
+  [UserRole.FLEET_MANAGER]: [
     'vehicles:read',
     'vehicles:create',
     'vehicles:update',
@@ -64,23 +104,49 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'surplus:delete',
     'reports:read',
     'reports:export',
+    'compliance:read',
+    'compliance:manage',
+    'departments:read',
+    'maintenance:read',
+    'maintenance:manage',
   ],
-  [UserRole.Supervisor]: [
+  [UserRole.DEPT_MANAGER]: [
     'vehicles:read',
     'vehicles:update',
     'drivers:read',
     'incidents:read',
+    'incidents:create',
+    'incidents:update',
     'surplus:read',
-    'surplus:approve',
+    'surplus:create',
     'reports:read',
+    'compliance:read',
+    'departments:read',
+    'maintenance:read',
   ],
-  [UserRole.Driver]: ['vehicles:read', 'incidents:read', 'incidents:create'],
-  [UserRole.Viewer]: [
+  [UserRole.COMPLIANCE_OFFICER]: [
+    'vehicles:read',
+    'drivers:read',
+    'incidents:read',
+    'reports:read',
+    'compliance:read',
+    'compliance:manage',
+    'departments:read',
+  ],
+  [UserRole.READ_ONLY]: [
     'vehicles:read',
     'drivers:read',
     'incidents:read',
     'surplus:read',
     'reports:read',
+    'compliance:read',
+    'departments:read',
+    'maintenance:read',
+  ],
+  [UserRole.DRIVER]: [
+    'vehicles:read',
+    'incidents:read',
+    'incidents:create',
   ],
 }
 

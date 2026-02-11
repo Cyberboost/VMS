@@ -36,6 +36,13 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     if (status === VehicleStatus.Surplus) {
       return { variant: 'secondary' as const, label: 'Surplus' }
     }
+    if (status === VehicleStatus.PENDING_SURPLUS) {
+      return {
+        variant: 'default' as const,
+        label: 'Pending Surplus',
+        className: 'bg-orange-500 hover:bg-orange-600',
+      }
+    }
     if (status === VehicleStatus.Decommissioned) {
       return { variant: 'outline' as const, label: 'Decommissioned' }
     }
@@ -55,15 +62,29 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       return { variant: 'destructive' as const, label: 'Suspended' }
     }
 
-    // Incident Status
-    if (status === IncidentStatus.Open) {
+    // Incident Status - Updated for new enums
+    if (status === IncidentStatus.OPEN) {
       return {
         variant: 'default' as const,
         label: 'Open',
         className: 'bg-blue-500 hover:bg-blue-600',
       }
     }
-    if (status === IncidentStatus.Closed) {
+    if (status === IncidentStatus.UNDER_REVIEW) {
+      return {
+        variant: 'default' as const,
+        label: 'Under Review',
+        className: 'bg-yellow-500 hover:bg-yellow-600',
+      }
+    }
+    if (status === IncidentStatus.ACTION_REQUIRED) {
+      return {
+        variant: 'default' as const,
+        label: 'Action Required',
+        className: 'bg-orange-500 hover:bg-orange-600',
+      }
+    }
+    if (status === IncidentStatus.CLOSED) {
       return { variant: 'secondary' as const, label: 'Closed' }
     }
 
@@ -94,6 +115,31 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     }
 
     // Surplus Status
+    if (status === SurplusStatus.PENDING_REVIEW) {
+      return {
+        variant: 'default' as const,
+        label: 'Pending Review',
+        className: 'bg-yellow-500 hover:bg-yellow-600',
+      }
+    }
+    if (status === SurplusStatus.PENDING_APPROVAL) {
+      return {
+        variant: 'default' as const,
+        label: 'Pending Approval',
+        className: 'bg-orange-500 hover:bg-orange-600',
+      }
+    }
+    if (status === SurplusStatus.APPROVED) {
+      return {
+        variant: 'default' as const,
+        label: 'Approved',
+        className: 'bg-green-500 hover:bg-green-600',
+      }
+    }
+    if (status === SurplusStatus.DISPOSED) {
+      return { variant: 'secondary' as const, label: 'Disposed' }
+    }
+    // Legacy statuses
     if (status === SurplusStatus.Requested) {
       return {
         variant: 'default' as const,

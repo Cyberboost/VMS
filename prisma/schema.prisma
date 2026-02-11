@@ -10,18 +10,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// ENUMS
+// ============================================================================
+
 enum UserRole {
-  Admin
-  FleetManager
-  Supervisor
-  Driver
-  Viewer
+  SUPER_ADMIN
+  ORG_ADMIN
+  FLEET_MANAGER
+  DEPT_MANAGER
+  COMPLIANCE_OFFICER
+  READ_ONLY
+  DRIVER
 }
 
 enum VehicleStatus {
   InService
   InRepair
   OutOfService
+  PENDING_SURPLUS
   Surplus
   Decommissioned
 }
@@ -40,8 +47,17 @@ enum IncidentSeverity {
 }
 
 enum IncidentStatus {
-  Open
-  Closed
+  OPEN
+  UNDER_REVIEW
+  ACTION_REQUIRED
+  CLOSED
+}
+
+enum FaultDetermination {
+  AT_FAULT
+  NOT_AT_FAULT
+  SHARED
+  PENDING
 }
 
 enum SurplusCondition {
@@ -52,6 +68,10 @@ enum SurplusCondition {
 }
 
 enum SurplusStatus {
+  PENDING_REVIEW
+  PENDING_APPROVAL
+  APPROVED
+  DISPOSED
   Requested
   Approved
   Auction
@@ -59,75 +79,499 @@ enum SurplusStatus {
   Closed
 }
 
+enum SurplusApprovalDecision {
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum AssignmentType {
+  DRIVER
+  POOL
+  AUTONOMOUS
+}
+
+enum ComplianceEntityType {
+  VEHICLE
+  DRIVER
+}
+
+enum ComplianceRuleType {
+  EXPIRATION
+  INTERVAL
+  THRESHOLD
+}
+
+enum ComplianceEventStatus {
+  OK
+  WARNING
+  OVERDUE
+  CRITICAL
+}
+
+enum WorkOrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum IngestionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum IngestionRowStatus {
+  OK
+  ERROR
+  SKIPPED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+// ============================================================================
+// CORE MODELS
+// ============================================================================
+
+model Organization {
+  id                String              @id @default(uuid())
+  name              String
+  slug              String              @unique
+  settings          Json?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  users             User[]
+  departments       Department[]
+  vehicles          Vehicle[]
+  drivers           Driver[]
+  incidents         Incident[]
+  assignments       Assignment[]
+  complianceRules   ComplianceRule[]
+  complianceEvents  ComplianceEvent[]
+  maintenancePlans  MaintenancePlan[]
+  workOrders        WorkOrder[]
+  surplusCases      SurplusCase[]
+  attachments       Attachment[]
+  ingestions        Ingestion[]
+  savedViews        SavedView[]
+  notifications     NotificationQueue[]
+  auditLogs         AuditLog[]
+  surplusRequests   SurplusRequest[]
+}
+
+model Department {
+  id             String       @id @default(uuid())
+  orgId          String
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name           String
+  code           String?
+  parentDeptId   String?
+  parentDept     Department?  @relation("DeptHierarchy", fields: [parentDeptId], references: [id])
+  childDepts     Department[] @relation("DeptHierarchy")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  createdBy      String?
+  updatedBy      String?
+  
+  users          User[]
+  
+  @@unique([orgId, code])
+  @@index([orgId])
+}
+
 model User {
   id                        String            @id @default(uuid())
+  orgId                     String?
+  organization              Organization?     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   name                      String
   email                     String            @unique
   passwordHash              String?
-  role                      UserRole          @default(Viewer)
+  role                      UserRole          @default(READ_ONLY)
+  departmentId              String?
+  department                Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  isActive                  Boolean           @default(true)
+  phone                     String?
+  employeeId                String?
+  photoUrl                  String?
   createdAt                 DateTime          @default(now())
   updatedAt                 DateTime          @updatedAt
+  
   surplusRequestsCreated    SurplusRequest[]  @relation("RequestedBy")
   surplusRequestsApproved   SurplusRequest[]  @relation("ApprovedBy")
   auditLogs                 AuditLog[]
+  surplusApprovalsGiven     SurplusApproval[] @relation("ApproverUser")
+  savedViews                SavedView[]
+  notifications             NotificationQueue[]
+  assignmentsCreated        Assignment[]      @relation("AssignmentCreatedBy")
+  complianceRulesCreated    ComplianceRule[]  @relation("ComplianceRuleCreatedBy")
+  complianceEventsResolved  ComplianceEvent[] @relation("ComplianceEventResolvedBy")
+  maintenancePlansCreated   MaintenancePlan[] @relation("MaintenancePlanCreatedBy")
+  workOrdersCreated         WorkOrder[]       @relation("WorkOrderCreatedBy")
+  surplusCasesCreated       SurplusCase[]     @relation("SurplusCaseCreatedBy")
+  surplusCasesUpdated       SurplusCase[]     @relation("SurplusCaseUpdatedBy")
+  attachmentsUploaded       Attachment[]      @relation("AttachmentUploadedBy")
+  ingestionsUploaded        Ingestion[]       @relation("IngestionUploadedBy")
+  incidentsCreated          Incident[]        @relation("IncidentCreatedBy")
+  incidentsUpdated          Incident[]        @relation("IncidentUpdatedBy")
+  
+  @@index([orgId])
+  @@index([departmentId])
 }
 
 model Vehicle {
-  id                    String            @id @default(uuid())
-  vehicleId             String            @unique
-  vin                   String            @unique
-  year                  Int
-  make                  String
-  model                 String
-  department            String
-  division              String?
-  status                VehicleStatus     @default(InService)
-  odometer              Int?
-  fuelType              String?
-  inServiceDate         DateTime?
-  replacementTargetYear Int?
-  lastDOTDate           DateTime?
-  notes                 String?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  incidents             Incident[]
-  surplusRequests       SurplusRequest[]
+  id                        String            @id @default(uuid())
+  orgId                     String
+  organization              Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vehicleId                 String
+  vin                       String
+  plateNumber               String?
+  year                      Int
+  make                      String
+  model                     String
+  department                String
+  division                  String?
+  status                    VehicleStatus     @default(InService)
+  odometer                  Int?
+  fuelType                  String?
+  inServiceDate             DateTime?
+  replacementTargetYear     Int?
+  lastDOTDate               DateTime?
+  notes                     String?
+  assignedDriverId          String?
+  photoUrl                  String?
+  tags                      String[]
+  sourceSystem              String?
+  sourceRecordId            String?
+  ingestionId               String?
+  ingestion                 Ingestion?        @relation("VehicleIngestion", fields: [ingestionId], references: [id], onDelete: SetNull)
+  replacementCostEstimate   Decimal?          @db.Decimal(12, 2)
+  insuranceExpiration       DateTime?
+  registrationExpiration    DateTime?
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+  
+  incidents                 Incident[]
+  surplusRequests           SurplusRequest[]
+  assignments               Assignment[]      @relation("VehicleAssignments")
+  maintenancePlans          MaintenancePlan[]
+  workOrders                WorkOrder[]
+  surplusCases              SurplusCase[]
+  
+  @@unique([orgId, vehicleId])
+  @@unique([orgId, vin])
+  @@index([orgId, status])
+  @@index([orgId, department])
+  @@index([orgId, createdAt])
 }
 
 model Driver {
-  id            String        @id @default(uuid())
-  driverId      String        @unique
-  firstName     String
-  lastName      String
-  email         String        @unique
-  phone         String?
-  department    String
-  cdlNumber     String?
-  cdlExpiration DateTime?
-  status        DriverStatus  @default(Active)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  incidents     Incident[]
+  id                    String        @id @default(uuid())
+  orgId                 String
+  organization          Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  driverId              String
+  firstName             String
+  lastName              String
+  email                 String
+  phone                 String?
+  department            String
+  cdlNumber             String?
+  cdlExpiration         DateTime?
+  status                DriverStatus  @default(Active)
+  photoUrl              String?
+  licenseType           String?
+  cdlFlag               Boolean       @default(false)
+  medicalCertExpiration DateTime?
+  trainingStatus        String?
+  sourceSystem          String?
+  sourceRecordId        String?
+  ingestionId           String?
+  ingestion             Ingestion?    @relation("DriverIngestion", fields: [ingestionId], references: [id], onDelete: SetNull)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  incidents             Incident[]
+  assignments           Assignment[]  @relation("DriverAssignments")
+  
+  @@unique([orgId, driverId])
+  @@unique([orgId, email])
+  @@index([orgId, status])
+  @@index([orgId, department])
+  @@index([orgId, createdAt])
 }
 
 model Incident {
-  id           String            @id @default(uuid())
-  incidentDate DateTime
-  description  String
-  severity     IncidentSeverity
-  atFault      Boolean           @default(false)
-  department   String
-  status       IncidentStatus    @default(Open)
-  vehicleId    String
-  vehicle      Vehicle           @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  driverId     String?
-  driver       Driver?           @relation(fields: [driverId], references: [id], onDelete: SetNull)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id                  String              @id @default(uuid())
+  orgId               String
+  organization        Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  incidentDate        DateTime
+  description         String
+  severity            IncidentSeverity
+  atFault             Boolean             @default(false)
+  department          String
+  status              IncidentStatus      @default(OPEN)
+  location            String?
+  faultDetermination  FaultDetermination  @default(PENDING)
+  costEstimate        Decimal?            @db.Decimal(12, 2)
+  vehicleId           String
+  vehicle             Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverId            String?
+  driver              Driver?             @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  createdBy           String?
+  createdByUser       User?               @relation("IncidentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedBy           String?
+  updatedByUser       User?               @relation("IncidentUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  @@index([orgId, status])
+  @@index([orgId, createdAt])
+}
+
+model Assignment {
+  id              String          @id @default(uuid())
+  orgId           String
+  organization    Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vehicleId       String
+  vehicle         Vehicle         @relation("VehicleAssignments", fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverId        String?
+  driver          Driver?         @relation("DriverAssignments", fields: [driverId], references: [id], onDelete: SetNull)
+  assignmentType  AssignmentType  @default(DRIVER)
+  startedAt       DateTime        @default(now())
+  endedAt         DateTime?
+  notes           String?
+  createdBy       String?
+  createdByUser   User?           @relation("AssignmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+  
+  @@index([orgId])
+  @@index([vehicleId])
+  @@index([driverId])
+}
+
+model ComplianceRule {
+  id                    String                @id @default(uuid())
+  orgId                 String
+  organization          Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name                  String
+  entityType            ComplianceEntityType
+  fieldToCheck          String
+  ruleType              ComplianceRuleType
+  warningDaysBefore     Int?
+  criticalDaysBefore    Int?
+  isActive              Boolean               @default(true)
+  createdBy             String?
+  createdByUser         User?                 @relation("ComplianceRuleCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  complianceEvents      ComplianceEvent[]
+  
+  @@index([orgId, isActive])
+}
+
+model ComplianceEvent {
+  id            String                  @id @default(uuid())
+  orgId         String
+  organization  Organization            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ruleId        String
+  rule          ComplianceRule          @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  entityType    ComplianceEntityType
+  entityId      String
+  status        ComplianceEventStatus
+  dueDate       DateTime?
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  resolvedByUser User?                  @relation("ComplianceEventResolvedBy", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  notes         String?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  
+  @@index([orgId, status])
+  @@index([entityType, entityId])
+}
+
+model MaintenancePlan {
+  id                String           @id @default(uuid())
+  orgId             String
+  organization      Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vehicleId         String
+  vehicle           Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  planType          String
+  intervalMiles     Int?
+  intervalDays      Int?
+  lastServiceDate   DateTime?
+  lastServiceMiles  Int?
+  nextDueDate       DateTime?
+  nextDueMiles      Int?
+  createdBy         String?
+  createdByUser     User?            @relation("MaintenancePlanCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  workOrders        WorkOrder[]
+  
+  @@index([orgId, vehicleId])
+}
+
+model WorkOrder {
+  id                  String            @id @default(uuid())
+  orgId               String
+  organization        Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vehicleId           String
+  vehicle             Vehicle           @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  maintenancePlanId   String?
+  maintenancePlan     MaintenancePlan?  @relation(fields: [maintenancePlanId], references: [id], onDelete: SetNull)
+  description         String
+  status              WorkOrderStatus   @default(PENDING)
+  cost                Decimal?          @db.Decimal(12, 2)
+  completedAt         DateTime?
+  createdBy           String?
+  createdByUser       User?             @relation("WorkOrderCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  @@index([orgId, status])
+  @@index([vehicleId])
+}
+
+model SurplusCase {
+  id                      String              @id @default(uuid())
+  orgId                   String
+  organization            Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vehicleId               String
+  vehicle                 Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  reason                  String
+  conditionRating         SurplusCondition
+  estimatedValue          Decimal?            @db.Decimal(12, 2)
+  costToRepair            Decimal?            @db.Decimal(12, 2)
+  recommendedDisposition  String?
+  status                  SurplusStatus       @default(PENDING_REVIEW)
+  photos                  Json?
+  currentApproverRole     String?
+  createdBy               String?
+  createdByUser           User?               @relation("SurplusCaseCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedBy               String?
+  updatedByUser           User?               @relation("SurplusCaseUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  
+  approvals               SurplusApproval[]
+  
+  @@index([orgId, status])
+}
+
+model SurplusApproval {
+  id                String                    @id @default(uuid())
+  surplusCaseId     String
+  surplusCase       SurplusCase               @relation(fields: [surplusCaseId], references: [id], onDelete: Cascade)
+  approverId        String
+  approver          User                      @relation("ApproverUser", fields: [approverId], references: [id], onDelete: Cascade)
+  roleAtApproval    String
+  decision          SurplusApprovalDecision
+  comments          String?
+  decidedAt         DateTime                  @default(now())
+  
+  @@index([surplusCaseId])
+}
+
+model Attachment {
+  id            String              @id @default(uuid())
+  orgId         String
+  organization  Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  entityType    String
+  entityId      String
+  filename      String
+  url           String
+  mimeType      String?
+  sizeBytes     Int?
+  uploadedBy    String?
+  uploadedByUser User?              @relation("AttachmentUploadedBy", fields: [uploadedBy], references: [id], onDelete: SetNull)
+  createdAt     DateTime            @default(now())
+  
+  @@index([orgId, entityType, entityId])
+}
+
+model Ingestion {
+  id            String            @id @default(uuid())
+  orgId         String
+  organization  Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  entityType    String
+  filename      String
+  fileType      String?
+  startedAt     DateTime          @default(now())
+  completedAt   DateTime?
+  rowsTotal     Int?
+  rowsOk        Int?
+  rowsFailed    Int?
+  uploadedBy    String?
+  uploadedByUser User?            @relation("IngestionUploadedBy", fields: [uploadedBy], references: [id], onDelete: SetNull)
+  status        IngestionStatus   @default(PENDING)
+  
+  rows          IngestionRow[]
+  vehicles      Vehicle[]         @relation("VehicleIngestion")
+  drivers       Driver[]          @relation("DriverIngestion")
+  
+  @@index([orgId, status])
+}
+
+model IngestionRow {
+  id          String              @id @default(uuid())
+  ingestionId String
+  ingestion   Ingestion           @relation(fields: [ingestionId], references: [id], onDelete: Cascade)
+  rowNumber   Int
+  rawData     Json
+  errors      Json?
+  status      IngestionRowStatus  @default(OK)
+  
+  @@index([ingestionId])
+}
+
+model SavedView {
+  id          String        @id @default(uuid())
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityType  String
+  name        String
+  filters     Json?
+  columns     Json?
+  sort        Json?
+  isDefault   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  @@index([orgId, userId, entityType])
+}
+
+model NotificationQueue {
+  id          String        @id @default(uuid())
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type        String
+  subject     String
+  body        String
+  entityType  String?
+  entityId    String?
+  sentAt      DateTime?
+  createdAt   DateTime      @default(now())
+  
+  @@index([orgId, userId, sentAt])
 }
 
 model SurplusRequest {
   id          String           @id @default(uuid())
+  orgId       String?
+  organization Organization?   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   vehicleId   String
   vehicle     Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   requestedBy String
@@ -141,15 +585,25 @@ model SurplusRequest {
   approvedAt  DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  
+  @@index([orgId])
 }
 
 model AuditLog {
-  id         String   @id @default(uuid())
-  entityType String
-  entityId   String
-  action     String
-  changes    Json?
-  actorId    String
-  actor      User     @relation(fields: [actorId], references: [id])
-  createdAt  DateTime @default(now())
+  id              String        @id @default(uuid())
+  orgId           String?
+  organization    Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  entityType      String
+  entityId        String
+  action          AuditAction
+  changedFields   Json?
+  beforeSnapshot  Json?
+  afterSnapshot   Json?
+  actorUserId     String?
+  actor           User?         @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  ipAddress       String?
+  createdAt       DateTime      @default(now())
+  
+  @@index([orgId, entityType, entityId])
+  @@index([orgId, createdAt])
 }
