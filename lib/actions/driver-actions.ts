@@ -30,6 +30,9 @@ export async function createDriver(data: unknown) {
       cdlExpiration: validatedData.cdlExpiration
         ? new Date(validatedData.cdlExpiration)
         : null,
+      medicalCertExpiration: validatedData.medicalCertExpiration
+        ? new Date(validatedData.medicalCertExpiration)
+        : null,
     },
   })
 
@@ -60,6 +63,9 @@ export async function updateDriver(id: string, data: unknown) {
       ...validatedData,
       cdlExpiration: validatedData.cdlExpiration
         ? new Date(validatedData.cdlExpiration)
+        : null,
+      medicalCertExpiration: validatedData.medicalCertExpiration
+        ? new Date(validatedData.medicalCertExpiration)
         : null,
     },
   })
