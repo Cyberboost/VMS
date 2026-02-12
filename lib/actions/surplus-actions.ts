@@ -6,6 +6,7 @@ import { requirePermission } from '@/lib/rbac'
 import { surplusRequestSchema } from '@/lib/validators'
 import { revalidatePath } from 'next/cache'
 import { SurplusStatus } from '@prisma/client'
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/audit'
 
 export async function createSurplusRequest(data: unknown) {
   const session = await auth()
@@ -15,21 +16,18 @@ export async function createSurplusRequest(data: unknown) {
 
   requirePermission(session.user.role, 'surplus:create')
 
+  const orgId = session.user.orgId
+
   const validatedData = surplusRequestSchema.parse(data)
 
   const request = await prisma.surplusRequest.create({
-    data: validatedData,
-  })
-
-  await prisma.auditLog.create({
     data: {
-      entityType: 'SurplusRequest',
-      entityId: request.id,
-      action: 'CREATE',
-      changes: validatedData,
-      actorId: session.user.id,
+      ...validatedData,
+      orgId,
     },
   })
+
+  await auditCreate('SurplusRequest', request.id, validatedData, session.user.id, orgId)
 
   revalidatePath('/surplus')
   revalidatePath(`/vehicles/${validatedData.vehicleId}`)
@@ -44,6 +42,11 @@ export async function approveSurplusRequest(id: string) {
 
   requirePermission(session.user.role, 'surplus:approve')
 
+  const before = await prisma.surplusRequest.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Surplus request not found')
+  }
+
   const request = await prisma.surplusRequest.update({
     where: { id },
     data: {
@@ -53,15 +56,7 @@ export async function approveSurplusRequest(id: string) {
     },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'SurplusRequest',
-      entityId: request.id,
-      action: 'APPROVE',
-      changes: { status: 'Approved' },
-      actorId: session.user.id,
-    },
-  })
+  await auditUpdate('SurplusRequest', request.id, before, { status: 'Approved' }, session.user.id, before.orgId)
 
   revalidatePath('/surplus')
   return request
@@ -75,6 +70,11 @@ export async function rejectSurplusRequest(id: string) {
 
   requirePermission(session.user.role, 'surplus:approve')
 
+  const before = await prisma.surplusRequest.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Surplus request not found')
+  }
+
   const request = await prisma.surplusRequest.update({
     where: { id },
     data: {
@@ -84,15 +84,7 @@ export async function rejectSurplusRequest(id: string) {
     },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'SurplusRequest',
-      entityId: request.id,
-      action: 'REJECT',
-      changes: { status: 'Closed' },
-      actorId: session.user.id,
-    },
-  })
+  await auditUpdate('SurplusRequest', request.id, before, { status: 'Closed' }, session.user.id, before.orgId)
 
   revalidatePath('/surplus')
   return request
@@ -106,20 +98,17 @@ export async function updateSurplusRequestStatus(id: string, status: SurplusStat
 
   requirePermission(session.user.role, 'surplus:update')
 
+  const before = await prisma.surplusRequest.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Surplus request not found')
+  }
+
   const request = await prisma.surplusRequest.update({
     where: { id },
     data: { status },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'SurplusRequest',
-      entityId: request.id,
-      action: 'UPDATE',
-      changes: { status },
-      actorId: session.user.id,
-    },
-  })
+  await auditUpdate('SurplusRequest', request.id, before, { status }, session.user.id, before.orgId)
 
   revalidatePath('/surplus')
   return request

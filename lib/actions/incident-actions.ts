@@ -6,6 +6,7 @@ import { requirePermission } from '@/lib/rbac'
 import { incidentSchema } from '@/lib/validators'
 import { revalidatePath } from 'next/cache'
 import { IncidentStatus, IncidentSeverity } from '@prisma/client'
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/audit'
 
 export async function createIncident(data: unknown) {
   const session = await auth()
@@ -15,24 +16,22 @@ export async function createIncident(data: unknown) {
 
   requirePermission(session.user.role, 'incidents:create')
 
+  const orgId = session.user.orgId
+  if (!orgId) {
+    throw new Error('Organization ID is required')
+  }
+
   const validatedData = incidentSchema.parse(data)
 
   const incident = await prisma.incident.create({
     data: {
       ...validatedData,
+      orgId,
       incidentDate: new Date(validatedData.incidentDate),
     },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Incident',
-      entityId: incident.id,
-      action: 'CREATE',
-      changes: validatedData,
-      actorId: session.user.id,
-    },
-  })
+  await auditCreate('Incident', incident.id, validatedData, session.user.id, orgId)
 
   revalidatePath('/incidents')
   revalidatePath(`/vehicles/${validatedData.vehicleId}`)
@@ -47,6 +46,11 @@ export async function updateIncident(id: string, data: unknown) {
 
   requirePermission(session.user.role, 'incidents:update')
 
+  const before = await prisma.incident.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Incident not found')
+  }
+
   const validatedData = incidentSchema.partial().parse(data)
 
   const incident = await prisma.incident.update({
@@ -57,15 +61,7 @@ export async function updateIncident(id: string, data: unknown) {
     },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Incident',
-      entityId: incident.id,
-      action: 'UPDATE',
-      changes: validatedData,
-      actorId: session.user.id,
-    },
-  })
+  await auditUpdate('Incident', incident.id, before, validatedData, session.user.id, before.orgId)
 
   revalidatePath('/incidents')
   revalidatePath(`/incidents/${id}`)
@@ -80,19 +76,16 @@ export async function deleteIncident(id: string) {
 
   requirePermission(session.user.role, 'incidents:delete')
 
+  const before = await prisma.incident.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Incident not found')
+  }
+
   const incident = await prisma.incident.delete({
     where: { id },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Incident',
-      entityId: incident.id,
-      action: 'DELETE',
-      changes: undefined,
-      actorId: session.user.id,
-    },
-  })
+  await auditDelete('Incident', incident.id, before, session.user.id, before.orgId)
 
   revalidatePath('/incidents')
   return incident

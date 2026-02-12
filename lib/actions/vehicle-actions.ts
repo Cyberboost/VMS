@@ -6,6 +6,7 @@ import { requirePermission } from '@/lib/rbac'
 import { vehicleSchema } from '@/lib/validators'
 import { revalidatePath } from 'next/cache'
 import { VehicleStatus } from '@prisma/client'
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/audit'
 
 export async function createVehicle(data: unknown) {
   const session = await auth()
@@ -15,27 +16,25 @@ export async function createVehicle(data: unknown) {
 
   requirePermission(session.user.role, 'vehicles:create')
 
+  const orgId = session.user.orgId
+  if (!orgId) {
+    throw new Error('Organization ID is required')
+  }
+
   const validatedData = vehicleSchema.parse(data)
 
   const vehicle = await prisma.vehicle.create({
     data: {
       ...validatedData,
+      orgId,
       inServiceDate: validatedData.inServiceDate
         ? new Date(validatedData.inServiceDate)
-        : undefined,
-      lastDOTDate: validatedData.lastDOTDate ? new Date(validatedData.lastDOTDate) : undefined,
+        : null,
+      lastDOTDate: validatedData.lastDOTDate ? new Date(validatedData.lastDOTDate) : null,
     },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Vehicle',
-      entityId: vehicle.id,
-      action: 'CREATE',
-      changes: validatedData,
-      actorId: session.user.id,
-    },
-  })
+  await auditCreate('Vehicle', vehicle.id, validatedData, session.user.id, orgId)
 
   revalidatePath('/vehicles')
   return vehicle
@@ -48,6 +47,11 @@ export async function updateVehicle(id: string, data: unknown) {
   }
 
   requirePermission(session.user.role, 'vehicles:update')
+
+  const before = await prisma.vehicle.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Vehicle not found')
+  }
 
   const validatedData = vehicleSchema.partial().parse(data)
 
@@ -62,15 +66,7 @@ export async function updateVehicle(id: string, data: unknown) {
     },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Vehicle',
-      entityId: vehicle.id,
-      action: 'UPDATE',
-      changes: validatedData,
-      actorId: session.user.id,
-    },
-  })
+  await auditUpdate('Vehicle', vehicle.id, before, validatedData, session.user.id, before.orgId)
 
   revalidatePath('/vehicles')
   revalidatePath(`/vehicles/${id}`)
@@ -85,19 +81,16 @@ export async function deleteVehicle(id: string) {
 
   requirePermission(session.user.role, 'vehicles:delete')
 
+  const before = await prisma.vehicle.findUnique({ where: { id } })
+  if (!before) {
+    throw new Error('Vehicle not found')
+  }
+
   const vehicle = await prisma.vehicle.delete({
     where: { id },
   })
 
-  await prisma.auditLog.create({
-    data: {
-      entityType: 'Vehicle',
-      entityId: vehicle.id,
-      action: 'DELETE',
-      changes: undefined,
-      actorId: session.user.id,
-    },
-  })
+  await auditDelete('Vehicle', vehicle.id, before, session.user.id, before.orgId)
 
   revalidatePath('/vehicles')
   return vehicle
