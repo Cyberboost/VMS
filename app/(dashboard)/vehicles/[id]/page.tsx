@@ -5,6 +5,7 @@ import { getVehicleById } from '@/lib/actions/vehicle-actions'
 import { getAssetTrustScore } from '@/lib/trust-score'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { WorkOrderStatusBadge } from '@/components/work-orders/work-order-status-badge'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Edit, AlertTriangle, Archive, Wrench, Plus, Shield } from 'lucide-react'
@@ -308,7 +309,7 @@ export default async function VehicleDetailPage({ params }: { params: { id: stri
                     <TableCell>{format(new Date(wo.createdAt), 'PP')}</TableCell>
                     <TableCell>{wo.description}</TableCell>
                     <TableCell>
-                      <StatusBadge status={wo.status} />
+                      <WorkOrderStatusBadge status={wo.status} />
                     </TableCell>
                     <TableCell>{wo.cost ? `$${wo.cost.toLocaleString()}` : 'N/A'}</TableCell>
                     <TableCell>
