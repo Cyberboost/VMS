@@ -140,30 +140,36 @@ enum AuditAction {
 // ============================================================================
 
 model Organization {
-  id                String              @id @default(uuid())
-  name              String
-  slug              String              @unique
-  settings          Json?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
-  users             User[]
-  departments       Department[]
-  vehicles          Vehicle[]
-  drivers           Driver[]
-  incidents         Incident[]
-  assignments       Assignment[]
-  complianceRules   ComplianceRule[]
-  complianceEvents  ComplianceEvent[]
-  maintenancePlans  MaintenancePlan[]
-  workOrders        WorkOrder[]
-  surplusCases      SurplusCase[]
-  attachments       Attachment[]
-  ingestions        Ingestion[]
-  savedViews        SavedView[]
-  notifications     NotificationQueue[]
-  auditLogs         AuditLog[]
-  surplusRequests   SurplusRequest[]
+  id                    String                  @id @default(uuid())
+  name                  String
+  slug                  String                  @unique
+  settings              Json?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  users                 User[]
+  departments           Department[]
+  vehicles              Vehicle[]
+  drivers               Driver[]
+  incidents             Incident[]
+  assignments           Assignment[]
+  complianceRules       ComplianceRule[]
+  complianceEvents      ComplianceEvent[]
+  maintenancePlans      MaintenancePlan[]
+  workOrders            WorkOrder[]
+  surplusCases          SurplusCase[]
+  attachments           Attachment[]
+  ingestions            Ingestion[]
+  savedViews            SavedView[]
+  notifications         NotificationQueue[]
+  auditLogs             AuditLog[]
+  surplusRequests       SurplusRequest[]
+  ledgerEvents          ImmutableLedgerEvent[]
+  inspections           Inspection[]
+  complianceDocuments   ComplianceDocument[]
+  parts                 Part[]
+  partInstallations     PartInstallation[]
+  vendors               Vendor[]
 }
 
 model Department {
@@ -202,7 +208,7 @@ model User {
   photoUrl                  String?
   createdAt                 DateTime          @default(now())
   updatedAt                 DateTime          @updatedAt
-  
+
   surplusRequestsCreated    SurplusRequest[]  @relation("RequestedBy")
   surplusRequestsApproved   SurplusRequest[]  @relation("ApprovedBy")
   auditLogs                 AuditLog[]
@@ -220,7 +226,14 @@ model User {
   ingestionsUploaded        Ingestion[]       @relation("IngestionUploadedBy")
   incidentsCreated          Incident[]        @relation("IncidentCreatedBy")
   incidentsUpdated          Incident[]        @relation("IncidentUpdatedBy")
-  
+  ledgerEvents              ImmutableLedgerEvent[]
+  inspectionsPerformed      Inspection[]      @relation("InspectionInspector")
+  inspectionsCreated        Inspection[]      @relation("InspectionCreatedBy")
+  complianceDocsUploaded    ComplianceDocument[] @relation("ComplianceDocumentUploadedBy")
+  complianceDocsVerified    ComplianceDocument[] @relation("ComplianceDocumentVerifiedBy")
+  partInstallations         PartInstallation[] @relation("PartInstallationInstalledBy")
+  vendorsApproved           Vendor[]          @relation("VendorApprovedBy")
+
   @@index([orgId])
   @@index([departmentId])
 }
@@ -256,14 +269,16 @@ model Vehicle {
   registrationExpiration    DateTime?
   createdAt                 DateTime          @default(now())
   updatedAt                 DateTime          @updatedAt
-  
+
   incidents                 Incident[]
   surplusRequests           SurplusRequest[]
   assignments               Assignment[]      @relation("VehicleAssignments")
   maintenancePlans          MaintenancePlan[]
   workOrders                WorkOrder[]
   surplusCases              SurplusCase[]
-  
+  inspections               Inspection[]
+  partInstallations         PartInstallation[]
+
   @@unique([orgId, vehicleId])
   @@unique([orgId, vin])
   @@index([orgId, status])
@@ -436,7 +451,9 @@ model WorkOrder {
   createdByUser       User?             @relation("WorkOrderCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
-  
+
+  partInstallations   PartInstallation[]
+
   @@index([orgId, status])
   @@index([vehicleId])
 }
@@ -603,7 +620,210 @@ model AuditLog {
   actor           User?         @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
   ipAddress       String?
   createdAt       DateTime      @default(now())
-  
+
   @@index([orgId, entityType, entityId])
   @@index([orgId, createdAt])
+}
+
+// ============================================================================
+// VANAGE OPERATIONAL TRUST LAYER
+// ============================================================================
+
+enum LedgerEventType {
+  INSPECTION_COMPLETED
+  WORK_ORDER_CLOSED
+  PART_INSTALLED
+  BRAKE_REPLACEMENT
+  OIL_CHANGE
+  VENDOR_APPROVAL
+  COMPLIANCE_DOCUMENT_UPLOADED
+  ASSET_TRANSFERRED
+  ASSET_RETIRED
+  MAINTENANCE_COMPLETED
+  SAFETY_CHECK_PASSED
+  CERTIFICATION_RENEWED
+  DEFECT_RESOLVED
+}
+
+enum LedgerVerificationStatus {
+  PENDING
+  VERIFIED
+  ANCHORED
+  FAILED
+}
+
+model ImmutableLedgerEvent {
+  id                  String                    @id @default(uuid())
+  orgId               String
+  organization        Organization              @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  eventType           LedgerEventType
+  assetId             String
+  assetType           String                    @default("Vehicle")
+  eventHash           String                    @unique
+  eventData           Json
+  timestamp           DateTime                  @default(now())
+  actorUserId         String?
+  actor               User?                     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  verificationStatus  LedgerVerificationStatus  @default(PENDING)
+  blockchainTxHash    String?
+  blockchainNetwork   String?
+  anchoredAt          DateTime?
+  previousEventHash   String?
+  signature           String?
+  metadata            Json?
+
+  @@index([orgId, assetId])
+  @@index([orgId, eventType])
+  @@index([timestamp])
+  @@index([verificationStatus])
+}
+
+model Inspection {
+  id                String          @id @default(uuid())
+  orgId             String
+  organization      Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vehicleId         String
+  vehicle           Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  inspectorId       String?
+  inspector         User?           @relation("InspectionInspector", fields: [inspectorId], references: [id], onDelete: SetNull)
+  inspectionType    String
+  inspectionDate    DateTime        @default(now())
+  status            String
+  result            String?
+  score             Int?
+  notes             String?
+  checklistData     Json?
+  completedAt       DateTime?
+  createdBy         String?
+  createdByUser     User?           @relation("InspectionCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  items             InspectionItem[]
+
+  @@index([orgId, vehicleId])
+  @@index([orgId, inspectionDate])
+}
+
+model InspectionItem {
+  id              String      @id @default(uuid())
+  inspectionId    String
+  inspection      Inspection  @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  category        String
+  item            String
+  status          String
+  notes           String?
+
+  @@index([inspectionId])
+}
+
+model ComplianceDocument {
+  id                String       @id @default(uuid())
+  orgId             String
+  organization      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  entityType        String
+  entityId          String
+  documentType      String
+  documentName      String
+  documentNumber    String?
+  issueDate         DateTime?
+  expirationDate    DateTime?
+  fileUrl           String?
+  status            String       @default("Active")
+  uploadedBy        String?
+  uploadedByUser    User?        @relation("ComplianceDocumentUploadedBy", fields: [uploadedBy], references: [id], onDelete: SetNull)
+  verifiedBy        String?
+  verifiedByUser    User?        @relation("ComplianceDocumentVerifiedBy", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  verifiedAt        DateTime?
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([orgId, entityType, entityId])
+  @@index([orgId, status])
+  @@index([expirationDate])
+}
+
+model Part {
+  id                String            @id @default(uuid())
+  orgId             String
+  organization      Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  partNumber        String
+  partName          String
+  description       String?
+  category          String?
+  manufacturer      String?
+  supplierName      String?
+  unitCost          Decimal?          @db.Decimal(12, 2)
+  quantityOnHand    Int?
+  reorderLevel      Int?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  installations     PartInstallation[]
+
+  @@unique([orgId, partNumber])
+  @@index([orgId, category])
+}
+
+model PartInstallation {
+  id                String      @id @default(uuid())
+  orgId             String
+  organization      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  partId            String
+  part              Part        @relation(fields: [partId], references: [id], onDelete: Cascade)
+  vehicleId         String
+  vehicle           Vehicle     @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  workOrderId       String?
+  workOrder         WorkOrder?  @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  quantity          Int         @default(1)
+  installedBy       String?
+  installedByUser   User?       @relation("PartInstallationInstalledBy", fields: [installedBy], references: [id], onDelete: SetNull)
+  installedAt       DateTime    @default(now())
+  cost              Decimal?    @db.Decimal(12, 2)
+  notes             String?
+
+  @@index([orgId, vehicleId])
+  @@index([orgId, partId])
+  @@index([workOrderId])
+}
+
+model Vendor {
+  id                String       @id @default(uuid())
+  orgId             String
+  organization      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vendorName        String
+  vendorType        String?
+  contactName       String?
+  contactEmail      String?
+  contactPhone      String?
+  address           String?
+  status            String       @default("Active")
+  rating            Int?
+  notes             String?
+  approvedBy        String?
+  approvedByUser    User?        @relation("VendorApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([orgId, vendorName])
+  @@index([orgId, status])
+}
+
+model AssetTrustScore {
+  id                        String    @id @default(uuid())
+  assetId                   String    @unique
+  assetType                 String    @default("Vehicle")
+  overallScore              Int
+  maintenanceScore          Int?
+  inspectionScore           Int?
+  complianceScore           Int?
+  incidentScore             Int?
+  verificationScore         Int?
+  lastCalculated            DateTime  @default(now())
+  metadata                  Json?
+
+  @@index([overallScore])
+  @@index([lastCalculated])
 }

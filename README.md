@@ -1,28 +1,79 @@
-# Fleet Admin Console
+# Vanage: Operational Trust Platform
 
-A modern, production-ready Fleet Management web application built with Next.js 14+, TypeScript, and PostgreSQL. This application provides a centralized dashboard for managing vehicles, drivers, incidents, surplus requests, and reporting.
+A production-ready enterprise SaaS platform for managing regulated fleet and infrastructure assets with verifiable operational trust. Built for government, utility, municipal, and infrastructure organizations.
 
-![Fleet Admin Console](https://img.shields.io/badge/Next.js-14+-black?style=flat-square&logo=next.js)
+![Vanage](https://img.shields.io/badge/Vanage-2.0-blue?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-16+-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5+-blue?style=flat-square&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3+-38B2AC?style=flat-square&logo=tailwind-css)
 
-## 🚀 Features
+## 🎯 Product Vision
 
-- **Dashboard**: Real-time KPIs, charts, and activity feed
-- **Vehicle Management**: Complete CRUD operations with detailed tracking
-- **Driver Management**: CDL tracking, status monitoring, and incident history
-- **Incident Tracking**: Comprehensive incident reporting and analysis
-- **Surplus Management**: Workflow-based vehicle surplus requests
-- **Reports**: Fleet analytics and budget justification
-- **Role-Based Access Control (RBAC)**: 5 user roles with granular permissions
-- **AI-Ready**: Placeholder for AI copilot integration
-- **Modern UI**: Clean GovTech-inspired design with shadcn/ui components
+**Vanage makes regulated fleet and infrastructure operations verifiable, compliant, and predictive.**
+
+Core positioning: **Trusted operational intelligence for regulated assets.**
+
+## ✨ Key Features
+
+### Phase 1: Core Operational Platform
+- **Fleet Registry**: Complete asset management with detailed tracking
+- **Asset Profiles**: Comprehensive vehicle and equipment information
+- **Maintenance Records**: Service history and work order management
+- **Work Orders**: Full lifecycle management from creation to completion
+- **Inspections**: Digital inspection workflows with checklist support
+- **Compliance Documents**: Centralized document management and tracking
+- **Reporting Dashboard**: Real-time KPIs and operational analytics
+- **Role-Based Access Control**: 9 user roles with granular permissions
+- **Audit Timeline**: Complete audit trail of all system changes
+
+### Phase 2: Trust Layer (MVP Foundation)
+- **Immutable Event Ledger**: Cryptographic verification of critical operations
+- **Asset Trust Score**: Composite metric based on:
+  - Maintenance completeness
+  - Inspection history
+  - Compliance status
+  - Open defects
+  - Incident history
+  - Verified ledger events
+  - Parts provenance
+  - Downtime risk
+- **Verification System**: Event hashing and signature support
+- **Blockchain-Ready Architecture**: Designed for future anchoring without disruption
+
+## 🏗️ Architecture
+
+### Operational Data Storage
+- **PostgreSQL**: All operational data
+- **Cloud Object Storage**: Files and attachments
+- **Event Ledger Table**: Hashes and verification records
+
+### Trust Layer Design
+Critical events generate:
+- Event hash (SHA-256)
+- Timestamp
+- User ID/signature
+- Asset ID
+- Event type
+- Verification record
+
+### Immutable Event Types
+- Inspection completed
+- Work order closed
+- Part installed
+- Brake replacement
+- Oil change
+- Vendor approval
+- Compliance document uploaded
+- Asset transferred
+- Asset retired
+- Certification renewed
+- Safety check passed
 
 ## 📋 Tech Stack
 
-- **Framework**: Next.js 14+ (App Router)
+- **Framework**: Next.js 16+ (App Router)
 - **Language**: TypeScript
-- **Database**: PostgreSQL (via Vercel Postgres)
+- **Database**: PostgreSQL
 - **ORM**: Prisma
 - **Authentication**: NextAuth (Auth.js)
 - **UI Components**: shadcn/ui + Tailwind CSS
@@ -30,27 +81,43 @@ A modern, production-ready Fleet Management web application built with Next.js 1
 - **Tables**: TanStack Table
 - **Charts**: Recharts
 - **Icons**: Lucide React
+- **Deployment**: Azure-ready
 
 ## 🔑 User Roles & Permissions
 
-| Role             | Permissions                                                         |
-| ---------------- | ------------------------------------------------------------------- |
-| **Admin**        | Full access to all features                                         |
-| **FleetManager** | Manage vehicles, drivers, incidents, surplus, and reports           |
-| **Supervisor**   | Approve surplus requests, view reports, edit limited vehicle fields |
-| **Driver**       | View assigned vehicle, submit incident requests                     |
-| **Viewer**       | Read-only access to all modules                                     |
+| Role                   | Permissions                                                      |
+| ---------------------- | ---------------------------------------------------------------- |
+| **Super Admin**        | Full system access across all organizations                      |
+| **Organization Admin** | Full access within organization                                  |
+| **Fleet Manager**      | Manage vehicles, drivers, work orders, maintenance               |
+| **Maintenance Manager**| Work orders, parts, vendor management                            |
+| **Mechanic/Technician**| Execute work orders, log maintenance activities                  |
+| **Driver/Operator**    | View assigned assets, submit inspection requests                 |
+| **Compliance Officer** | Manage compliance documents, review audit trails                 |
+| **Auditor**            | Read-only access to all records and immutable ledger             |
+| **Executive Viewer**   | Dashboard and high-level analytics                               |
 
-## 🗄️ Data Models
+## 🗄️ Core Data Models
 
-- **Vehicle**: VIN, make, model, status, odometer, DOT dates, replacement tracking
-- **Driver**: CDL information, contact details, status, incident history
-- **Incident**: Date, description, severity, vehicle/driver linkage
-- **SurplusRequest**: Vehicle condition, approval workflow, status tracking
-- **AuditLog**: Complete audit trail of all changes
+- **Organization**: Multi-tenant support
 - **User**: Authentication and role management
+- **Role**: Permission-based access control
+- **Asset/Vehicle**: Fleet and equipment registry
+- **WorkOrder**: Maintenance work tracking
+- **MaintenanceRecord**: Service history
+- **Inspection**: Digital inspection workflows
+- **InspectionChecklist**: Customizable inspection items
+- **ComplianceDocument**: Document management
+- **Vendor**: Approved vendor registry
+- **Part**: Parts inventory
+- **PartInstallation**: Parts provenance tracking
+- **AuditEvent**: Complete audit trail
+- **ImmutableLedgerEvent**: Cryptographically verified events
+- **AssetTrustScore**: Composite trust metrics
+- **Notification**: Alert system
+- **Report**: Analytics and reporting
 
-## 🛠️ Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -82,7 +149,7 @@ A modern, production-ready Fleet Management web application built with Next.js 1
    Edit `.env` and configure:
 
    ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/fleet_db"
+   DATABASE_URL="postgresql://user:password@localhost:5432/vanage_db"
    NEXTAUTH_SECRET="your-secret-key-here"
    NEXTAUTH_URL="http://localhost:3000"
    ```
@@ -117,144 +184,141 @@ A modern, production-ready Fleet Management web application built with Next.js 1
 
 ### Demo Credentials
 
-| Email             | Password    | Role         |
-| ----------------- | ----------- | ------------ |
-| admin@fleet.gov   | password123 | Admin        |
-| manager@fleet.gov | password123 | FleetManager |
-| viewer@fleet.gov  | password123 | Viewer       |
+| Email                   | Password    | Role                   |
+| ----------------------- | ----------- | ---------------------- |
+| admin@fleet.gov         | password123 | Super Admin            |
+| orgadmin@fleet.gov      | password123 | Organization Admin     |
+| fleetmanager@fleet.gov  | password123 | Fleet Manager          |
+| compliance1@fleet.gov   | password123 | Compliance Officer     |
+| readonly1@fleet.gov     | password123 | Auditor                |
 
-## 📦 Project Structure
+## 📊 Key Dashboards
 
-```
-├── app/
-│   ├── (dashboard)/           # Protected dashboard routes
-│   │   ├── page.tsx           # Dashboard home
-│   │   ├── vehicles/          # Vehicle management
-│   │   ├── drivers/           # Driver management
-│   │   ├── incidents/         # Incident tracking
-│   │   ├── surplus/           # Surplus requests
-│   │   └── reports/           # Reports & analytics
-│   ├── api/auth/              # NextAuth API routes
-│   ├── auth/signin/           # Sign-in page
-│   ├── layout.tsx             # Root layout
-│   └── globals.css            # Global styles
-├── components/
-│   ├── layout/                # Layout components
-│   │   ├── header.tsx
-│   │   └── sidebar.tsx
-│   ├── ui/                    # Reusable UI components
-│   └── copilot-panel.tsx      # AI copilot placeholder
-├── lib/
-│   ├── actions/               # Server actions
-│   │   ├── vehicle-actions.ts
-│   │   ├── driver-actions.ts
-│   │   ├── incident-actions.ts
-│   │   └── surplus-actions.ts
-│   ├── auth.ts                # NextAuth configuration
-│   ├── db.ts                  # Prisma client
-│   ├── rbac.ts                # Role-based access control
-│   ├── validators.ts          # Zod schemas
-│   └── utils.ts               # Utility functions
-├── prisma/
-│   ├── schema.prisma          # Database schema
-│   └── seed.ts                # Seed script
-├── middleware.ts              # Route protection
-└── package.json
-```
+### 1. Executive Dashboard
+- Total assets
+- Active vehicles
+- Average trust score
+- Overdue maintenance
+- Compliance risk
+- Verified events count
+- Downtime cost analysis
 
-## 🚀 Deployment
+### 2. Fleet Manager Dashboard
+- Open work orders
+- Upcoming inspections
+- Assets needing service
+- Vendor activity
+- Maintenance cost trends
+- Asset trust scores
 
-### Deploy to Vercel
+### 3. Compliance Dashboard
+- Missing documents
+- Expired certifications
+- Inspection failures
+- Audit trail export
+- Immutable verification status
+- Risk metrics
 
-1. **Push your code to GitHub**
+## 🎯 Asset Trust Score
 
-2. **Import to Vercel**
-   - Go to [vercel.com](https://vercel.com)
-   - Click "New Project"
-   - Import your GitHub repository
+The signature feature of Vanage is the **Asset Trust Score**, a composite metric (0-100) based on:
 
-3. **Configure environment variables**
-   Add these in Vercel dashboard:
+1. **Maintenance Completeness** (20%)
+   - On-time service completion
+   - Overdue maintenance count
+   - Service interval adherence
 
-   ```
-   DATABASE_URL=your-postgres-connection-string
-   NEXTAUTH_SECRET=your-secret-key
-   NEXTAUTH_URL=https://your-app.vercel.app
-   ```
+2. **Inspection History** (20%)
+   - Inspection pass rate
+   - Critical defects resolved
+   - Inspection frequency
 
-4. **Set up Vercel Postgres** (Optional)
-   - Add Vercel Postgres from the Storage tab
-   - Connection string will be automatically added
+3. **Compliance Status** (20%)
+   - Current compliance standing
+   - Expired documents
+   - Regulatory violations
 
-5. **Deploy**
+4. **Incident History** (15%)
+   - Incident frequency
+   - Severity distribution
+   - At-fault incidents
 
+5. **Verified Ledger Events** (15%)
+   - Immutable event count
+   - Verification status
+   - Event completeness
+
+6. **Parts Provenance** (5%)
+   - OEM parts percentage
+   - Parts traceability
+   - Installation records
+
+7. **Downtime Risk** (5%)
+   - Projected availability
+   - Historical uptime
+   - Critical component status
+
+## 🔒 Security Features
+
+- Passwords hashed using bcryptjs
+- NextAuth session management with JWT
+- RBAC enforced at UI and API levels
+- SQL injection protection via Prisma
+- CSRF protection via NextAuth
+- Environment variables for sensitive data
+- Audit logging for all critical actions
+- Immutable event ledger with cryptographic verification
+
+## 🌐 Deployment
+
+### Azure Deployment (Recommended)
+
+1. **Deploy to Azure App Service**
+   - Configure PostgreSQL database
+   - Set environment variables
+   - Enable automatic deployments from GitHub
+
+2. **Database Setup**
    ```bash
-   vercel deploy
-   ```
-
-6. **Run migrations on production**
-   ```bash
-   # Using Vercel CLI
-   vercel env pull .env.local
+   # Run migrations on production
    npx prisma migrate deploy
+
+   # Seed initial data (optional)
    npx prisma db seed
    ```
 
-## 📊 Database Management
+### Alternative: Vercel Deployment
 
-### Common Commands
+1. **Import to Vercel**
+   - Connect GitHub repository
+   - Add environment variables
+   - Deploy
 
-```bash
-# Generate Prisma client
-npm run prisma:generate
+2. **Add PostgreSQL**
+   - Use Vercel Postgres or external provider
+   - Update DATABASE_URL
 
-# Create a new migration
-npm run prisma:migrate
+## 📝 Sample Use Cases
 
-# Open Prisma Studio (database GUI)
-npm run prisma:studio
+### Municipal Fleet Management
+- Track service vans, bucket trucks, emergency vehicles
+- Verify DOT compliance and inspections
+- Manage work orders for fleet maintenance
+- Generate audit-ready compliance reports
 
-# Push schema changes without migration
-npm run db:push
+### Electric Utility Operations
+- Monitor bucket trucks and service vehicles
+- Track generator and trailer assets
+- Manage preventive maintenance schedules
+- Verify safety inspections and certifications
 
-# Seed database
-npm run db:seed
+### Government Infrastructure
+- Asset lifecycle management
+- Compliance tracking for regulated equipment
+- Immutable audit trails for accountability
+- Cost analysis and budget justification
 
-# Reset database (WARNING: deletes all data)
-npx prisma migrate reset
-```
-
-## 🤖 AI Copilot Integration
-
-The application includes an AI copilot placeholder that can be integrated with OpenAI or other AI services.
-
-### To Enable AI Features:
-
-1. **Add OpenAI API key to `.env`**
-
-   ```env
-   OPENAI_API_KEY=your-openai-api-key
-   ```
-
-2. **Create AI service layer**
-
-   ```typescript
-   // lib/ai-service.ts
-   import OpenAI from 'openai'
-
-   const openai = new OpenAI({
-     apiKey: process.env.OPENAI_API_KEY,
-   })
-
-   export async function askFleetCopilot(question: string) {
-     // Implementation
-   }
-   ```
-
-3. **Update CopilotPanel to use real AI**
-   Replace the mock response with actual API calls
-
-## 🧪 Testing
+## 🛠️ Development
 
 ```bash
 # Run linter
@@ -265,20 +329,16 @@ npm run format
 
 # Type check
 npx tsc --noEmit
+
+# Open Prisma Studio (database GUI)
+npm run prisma:studio
+
+# Create a new migration
+npm run prisma:migrate
+
+# Reset database (WARNING: deletes all data)
+npx prisma migrate reset
 ```
-
-## 🔒 Security
-
-- Passwords are hashed using bcryptjs
-- NextAuth handles session management with JWT
-- RBAC enforced at both UI and API levels
-- SQL injection protection via Prisma
-- CSRF protection via NextAuth
-- Environment variables for sensitive data
-
-## 📝 License
-
-This project is licensed under the ISC License.
 
 ## 🤝 Contributing
 
@@ -293,17 +353,20 @@ Contributions are welcome! Please follow these steps:
 ## 📞 Support
 
 For issues and questions:
-
 - Open an issue on GitHub
 - Contact the development team
+
+## 📄 License
+
+This project is licensed under the ISC License.
 
 ## 🙏 Acknowledgments
 
 - Built with [Next.js](https://nextjs.org/)
 - UI components from [shadcn/ui](https://ui.shadcn.com/)
 - Icons from [Lucide](https://lucide.dev/)
-- Deployed on [Vercel](https://vercel.com)
+- Database ORM from [Prisma](https://www.prisma.io/)
 
 ---
 
-**Built for modern government fleet management** 🚗 🏛️
+**Built for modern government and infrastructure operations** 🏛️ 🚗 ⚡
