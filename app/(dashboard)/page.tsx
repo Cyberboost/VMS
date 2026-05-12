@@ -6,90 +6,120 @@ import {
   Car,
   CheckCircle,
   AlertTriangle,
-  Package,
-  Plus,
-  FileText,
-  Inbox,
+  Shield,
+  Wrench,
+  ClipboardCheck,
+  TrendingUp,
+  Activity,
 } from 'lucide-react'
 
 export default function DashboardPage() {
   // Mock data for KPIs
   const kpis = {
-    totalVehicles: 1247,
-    activeVehicles: 1102,
-    openIncidents: 23,
-    pendingSurplus: 8,
+    totalAssets: 1247,
+    activeAssets: 1102,
+    avgTrustScore: 87,
+    openWorkOrders: 12,
+    overdueCompliance: 8,
+    verifiedEvents: 2847,
   }
 
-  // Mock data for Recent Incidents
-  const recentIncidents = [
+  // Mock data for Asset Trust Scores
+  const assetTrustHighlights = [
     {
-      id: 'INC-001',
-      vehicle: 'VH-2847',
-      description: 'Engine warning light activated during route',
-      severity: 'Critical' as const,
-      status: 'Open' as const,
-      date: 'Feb 11, 2026',
+      id: 'VEH-2847',
+      name: 'Bucket Truck BT-42',
+      type: 'Utility Truck',
+      trustScore: 95,
+      status: 'Excellent' as const,
+      lastVerified: 'Feb 11, 2026',
     },
     {
-      id: 'INC-002',
-      vehicle: 'VH-1523',
-      description: 'Minor collision in parking lot',
-      severity: 'Medium' as const,
-      status: 'Under Review' as const,
-      date: 'Feb 10, 2026',
+      id: 'VEH-1523',
+      name: 'Service Van SV-18',
+      type: 'Service Vehicle',
+      trustScore: 88,
+      status: 'Good' as const,
+      lastVerified: 'Feb 10, 2026',
     },
     {
-      id: 'INC-003',
-      vehicle: 'VH-3891',
-      description: 'Brake system maintenance required',
-      severity: 'High' as const,
-      status: 'Action Required' as const,
-      date: 'Feb 10, 2026',
+      id: 'VEH-3891',
+      name: 'Emergency Response ER-07',
+      type: 'Emergency Vehicle',
+      trustScore: 72,
+      status: 'Fair' as const,
+      lastVerified: 'Feb 9, 2026',
     },
     {
-      id: 'INC-004',
-      vehicle: 'VH-4102',
-      description: 'Tire pressure sensor malfunction',
-      severity: 'Low' as const,
-      status: 'Open' as const,
-      date: 'Feb 9, 2026',
+      id: 'VEH-4102',
+      name: 'Generator Trailer GT-15',
+      type: 'Generator',
+      trustScore: 91,
+      status: 'Excellent' as const,
+      lastVerified: 'Feb 8, 2026',
     },
     {
-      id: 'INC-005',
-      vehicle: 'VH-2156',
-      description: 'Windshield chip needs repair',
-      severity: 'Low' as const,
-      status: 'Under Review' as const,
-      date: 'Feb 9, 2026',
+      id: 'VEH-2156',
+      name: 'Pickup Truck PT-22',
+      type: 'Utility Vehicle',
+      trustScore: 65,
+      status: 'Attention Needed' as const,
+      lastVerified: 'Feb 7, 2026',
     },
   ]
 
-  // Severity badge styling
-  const getSeverityBadgeClass = (severity: string) => {
-    switch (severity) {
-      case 'Critical':
-        return 'bg-red-500 hover:bg-red-600 text-white border-transparent'
-      case 'High':
-        return 'bg-orange-500 hover:bg-orange-600 text-white border-transparent'
-      case 'Medium':
-        return 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent'
-      case 'Low':
-        return 'bg-blue-500 hover:bg-blue-600 text-white border-transparent'
-      default:
-        return ''
-    }
+  // Recent Immutable Events
+  const recentEvents = [
+    {
+      id: 'EVT-001',
+      assetId: 'VEH-2847',
+      eventType: 'INSPECTION_COMPLETED',
+      description: 'Annual DOT inspection passed',
+      timestamp: 'Feb 11, 2026 10:45 AM',
+      status: 'Verified' as const,
+    },
+    {
+      id: 'EVT-002',
+      assetId: 'VEH-1523',
+      eventType: 'OIL_CHANGE',
+      description: 'Routine oil change completed',
+      timestamp: 'Feb 10, 2026 2:30 PM',
+      status: 'Verified' as const,
+    },
+    {
+      id: 'EVT-003',
+      assetId: 'VEH-3891',
+      eventType: 'BRAKE_REPLACEMENT',
+      description: 'Front brake pads replaced',
+      timestamp: 'Feb 10, 2026 11:15 AM',
+      status: 'Verified' as const,
+    },
+    {
+      id: 'EVT-004',
+      assetId: 'VEH-4102',
+      eventType: 'COMPLIANCE_DOCUMENT_UPLOADED',
+      description: 'Insurance certificate renewed',
+      timestamp: 'Feb 9, 2026 4:20 PM',
+      status: 'Pending' as const,
+    },
+  ]
+
+  // Trust score badge styling
+  const getTrustScoreBadgeClass = (score: number) => {
+    if (score >= 90) return 'bg-green-500 hover:bg-green-600 text-white border-transparent'
+    if (score >= 80) return 'bg-blue-500 hover:bg-blue-600 text-white border-transparent'
+    if (score >= 70) return 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent'
+    if (score >= 60) return 'bg-orange-500 hover:bg-orange-600 text-white border-transparent'
+    return 'bg-red-500 hover:bg-red-600 text-white border-transparent'
   }
 
   // Status badge styling
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case 'Open':
-        return 'bg-blue-500 hover:bg-blue-600 text-white border-transparent'
-      case 'Under Review':
+      case 'Verified':
+        return 'bg-green-500 hover:bg-green-600 text-white border-transparent'
+      case 'Pending':
         return 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent'
-      case 'Action Required':
-        return 'bg-orange-500 hover:bg-orange-600 text-white border-transparent'
       default:
         return ''
     }
@@ -99,71 +129,151 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Fleet Overview</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Operational Trust Dashboard</h1>
         <p className="text-muted-foreground">
-          Real-time fleet intelligence &amp; accountability dashboard
+          Verifiable, compliant, and predictive fleet intelligence
         </p>
       </div>
 
-      {/* KPI Grid - 4 cards in a responsive row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Vehicles */}
+      {/* KPI Grid - 6 cards in a responsive row */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {/* Total Assets */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
             <Car className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpis.totalVehicles}</div>
-            <p className="text-xs text-muted-foreground mt-1">Across all departments</p>
+            <div className="text-2xl font-bold">{kpis.totalAssets}</div>
+            <p className="text-xs text-muted-foreground mt-1">Fleet & infrastructure</p>
           </CardContent>
         </Card>
 
-        {/* Active Vehicles */}
+        {/* Active Assets */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Vehicles</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Assets</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{kpis.activeVehicles}</div>
-            <p className="text-xs text-muted-foreground mt-1">Currently in service</p>
+            <div className="text-2xl font-bold text-green-600">{kpis.activeAssets}</div>
+            <p className="text-xs text-muted-foreground mt-1">Currently operational</p>
           </CardContent>
         </Card>
 
-        {/* Open Incidents */}
+        {/* Average Trust Score */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Incidents</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Trust Score</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{kpis.avgTrustScore}</div>
+            <p className="text-xs text-muted-foreground mt-1">Fleet-wide average</p>
+          </CardContent>
+        </Card>
+
+        {/* Open Work Orders */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Open Work Orders</CardTitle>
+            <Wrench className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{kpis.openWorkOrders}</div>
+            <p className="text-xs text-muted-foreground mt-1">Pending maintenance</p>
+          </CardContent>
+        </Card>
+
+        {/* Overdue Compliance */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Compliance Risk</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{kpis.openIncidents}</div>
-            <p className="text-xs text-muted-foreground mt-1">+3 since last week</p>
+            <div className="text-2xl font-bold text-red-600">{kpis.overdueCompliance}</div>
+            <p className="text-xs text-muted-foreground mt-1">Items overdue</p>
           </CardContent>
         </Card>
 
-        {/* Pending Surplus Requests */}
+        {/* Verified Events */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Surplus Requests</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Verified Events</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{kpis.pendingSurplus}</div>
-            <p className="text-xs text-muted-foreground mt-1">Awaiting review</p>
+            <div className="text-2xl font-bold text-purple-600">{kpis.verifiedEvents}</div>
+            <p className="text-xs text-muted-foreground mt-1">Immutable ledger</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Middle Section - Asset Trust Scores */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Asset Trust Scores</CardTitle>
+          <CardDescription>
+            Real-time operational trust metrics for critical assets
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Asset ID
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Name
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Type
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Trust Score
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Last Verified
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {assetTrustHighlights.map((asset) => (
+                  <tr key={asset.id} className="border-b last:border-0">
+                    <td className="py-3 px-4 text-sm font-medium">{asset.id}</td>
+                    <td className="py-3 px-4 text-sm">{asset.name}</td>
+                    <td className="py-3 px-4 text-sm">{asset.type}</td>
+                    <td className="py-3 px-4">
+                      <Badge className={getTrustScoreBadgeClass(asset.trustScore)}>
+                        {asset.trustScore}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 text-sm">{asset.status}</td>
+                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                      {asset.lastVerified}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Bottom Section - Two-column responsive grid */}
       <div className="grid gap-4 lg:grid-cols-5">
-        {/* Left: Recent Incidents Table (spans 3 cols) */}
+        {/* Left: Recent Immutable Events (spans 3 cols) */}
         <div className="lg:col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Incidents</CardTitle>
-              <CardDescription>Latest reported fleet incidents</CardDescription>
+              <CardTitle>Recent Immutable Events</CardTitle>
+              <CardDescription>Latest verified operational activities</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -171,43 +281,31 @@ export default function DashboardPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        ID
+                        Asset ID
                       </th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Vehicle
+                        Event
                       </th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Description
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Severity
+                        Timestamp
                       </th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                         Status
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Date
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {recentIncidents.map((incident) => (
-                      <tr key={incident.id} className="border-b last:border-0">
-                        <td className="py-3 px-4 text-sm font-medium">{incident.id}</td>
-                        <td className="py-3 px-4 text-sm">{incident.vehicle}</td>
-                        <td className="py-3 px-4 text-sm">{incident.description}</td>
-                        <td className="py-3 px-4">
-                          <Badge className={getSeverityBadgeClass(incident.severity)}>
-                            {incident.severity}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className={getStatusBadgeClass(incident.status)}>
-                            {incident.status}
-                          </Badge>
-                        </td>
+                    {recentEvents.map((event) => (
+                      <tr key={event.id} className="border-b last:border-0">
+                        <td className="py-3 px-4 text-sm font-medium">{event.assetId}</td>
+                        <td className="py-3 px-4 text-sm">{event.description}</td>
                         <td className="py-3 px-4 text-sm text-muted-foreground">
-                          {incident.date}
+                          {event.timestamp}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge className={getStatusBadgeClass(event.status)}>
+                            {event.status}
+                          </Badge>
                         </td>
                       </tr>
                     ))}
@@ -223,50 +321,49 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common fleet management tasks</CardDescription>
+              <CardDescription>Common operational tasks</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Link href="/vehicles/new" className="block">
+              <Link href="/vehicles" className="block">
                 <Button variant="default" className="w-full justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Vehicle
+                  <Car className="h-4 w-4 mr-2" />
+                  View Fleet Registry
                 </Button>
               </Link>
-              <Link href="/incidents/new" className="block">
+              <Link href="/work-orders" className="block">
                 <Button variant="default" className="w-full justify-start">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Log Incident
+                  <Wrench className="h-4 w-4 mr-2" />
+                  Manage Work Orders
                 </Button>
               </Link>
-              <Link href="/surplus/new" className="block">
+              <Link href="/inspections" className="block">
                 <Button variant="outline" className="w-full justify-start">
-                  <Package className="h-4 w-4 mr-2" />
-                  Create Surplus Request
+                  <ClipboardCheck className="h-4 w-4 mr-2" />
+                  Schedule Inspection
+                </Button>
+              </Link>
+              <Link href="/compliance" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  View Compliance Alerts
+                </Button>
+              </Link>
+              <Link href="/ledger" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Trust Ledger
                 </Button>
               </Link>
               <Link href="/reports" className="block">
                 <Button variant="outline" className="w-full justify-start">
-                  <FileText className="h-4 w-4 mr-2" />
-                  View Reports
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Generate Report
                 </Button>
               </Link>
             </CardContent>
           </Card>
         </div>
       </div>
-
-      {/* Empty State Placeholder — activate when no data is available */}
-      {false && (
-        <Card className="mt-6">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Inbox className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No data yet</h3>
-            <p className="text-sm text-muted-foreground text-center">
-              Fleet data will appear here once connected.
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }
