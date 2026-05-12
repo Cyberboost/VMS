@@ -12,97 +12,136 @@ import {
   TrendingUp,
   Activity,
 } from 'lucide-react'
+import { requireAuth } from '@/lib/auth-utils'
+import prisma from '@/lib/prisma'
+import { VehicleStatus, WorkOrderStatus } from '@prisma/client'
+import { format } from 'date-fns'
 
-export default function DashboardPage() {
-  // Mock data for KPIs
-  const kpis = {
-    totalAssets: 1247,
-    activeAssets: 1102,
-    avgTrustScore: 87,
-    openWorkOrders: 12,
-    overdueCompliance: 8,
-    verifiedEvents: 2847,
+export const dynamic = 'force-dynamic'
+
+async function getDashboardData(orgId: string) {
+  // Get vehicle IDs for this org
+  const vehicleIds = (await prisma.vehicle.findMany({ where: { orgId }, select: { id: true } })).map(v => v.id)
+
+  const [
+    totalAssets,
+    activeAssets,
+    openWorkOrders,
+    overdueCompliance,
+    verifiedEvents,
+    trustScores,
+    topAssets,
+    recentEvents,
+  ] = await Promise.all([
+    prisma.vehicle.count({ where: { orgId } }),
+    prisma.vehicle.count({
+      where: { orgId, status: VehicleStatus.InService },
+    }),
+    prisma.workOrder.count({
+      where: {
+        orgId,
+        status: { in: [WorkOrderStatus.PENDING, WorkOrderStatus.IN_PROGRESS] },
+      },
+    }),
+    prisma.complianceEvent.count({
+      where: { orgId, status: { in: ['OVERDUE', 'CRITICAL'] } },
+    }),
+    prisma.immutableLedgerEvent.count({ where: { orgId } }),
+    prisma.assetTrustScore.aggregate({
+      where: { assetId: { in: vehicleIds } },
+      _avg: { overallScore: true },
+    }),
+    prisma.assetTrustScore.findMany({
+      where: { assetId: { in: vehicleIds } },
+      orderBy: { overallScore: 'desc' },
+      take: 10,
+    }),
+    prisma.immutableLedgerEvent.findMany({
+      where: { orgId },
+      orderBy: { timestamp: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        eventType: true,
+        assetId: true,
+        timestamp: true,
+        verificationStatus: true,
+        eventData: true,
+      },
+    }),
+  ])
+
+  // Fetch vehicles for top assets
+  const vehicleMap = new Map(
+    (
+      await prisma.vehicle.findMany({
+        where: { id: { in: topAssets.map(a => a.assetId) } },
+        select: { id: true, vehicleId: true, make: true, model: true, year: true },
+      })
+    ).map(v => [v.id, v])
+  )
+
+  return {
+    kpis: {
+      totalAssets,
+      activeAssets,
+      avgTrustScore: Math.round(trustScores._avg.overallScore || 0),
+      openWorkOrders,
+      overdueCompliance,
+      verifiedEvents,
+    },
+    topAssets: topAssets.map(asset => ({
+      ...asset,
+      vehicle: vehicleMap.get(asset.assetId),
+    })),
+    recentEvents,
+  }
+}
+
+export default async function DashboardPage() {
+  const context = await requireAuth()
+  if (!context.orgId) {
+    return <div>No organization found</div>
   }
 
-  // Mock data for Asset Trust Scores
-  const assetTrustHighlights = [
-    {
-      id: 'VEH-2847',
-      name: 'Bucket Truck BT-42',
-      type: 'Utility Truck',
-      trustScore: 95,
-      status: 'Excellent' as const,
-      lastVerified: 'Feb 11, 2026',
-    },
-    {
-      id: 'VEH-1523',
-      name: 'Service Van SV-18',
-      type: 'Service Vehicle',
-      trustScore: 88,
-      status: 'Good' as const,
-      lastVerified: 'Feb 10, 2026',
-    },
-    {
-      id: 'VEH-3891',
-      name: 'Emergency Response ER-07',
-      type: 'Emergency Vehicle',
-      trustScore: 72,
-      status: 'Fair' as const,
-      lastVerified: 'Feb 9, 2026',
-    },
-    {
-      id: 'VEH-4102',
-      name: 'Generator Trailer GT-15',
-      type: 'Generator',
-      trustScore: 91,
-      status: 'Excellent' as const,
-      lastVerified: 'Feb 8, 2026',
-    },
-    {
-      id: 'VEH-2156',
-      name: 'Pickup Truck PT-22',
-      type: 'Utility Vehicle',
-      trustScore: 65,
-      status: 'Attention Needed' as const,
-      lastVerified: 'Feb 7, 2026',
-    },
-  ]
+  const { kpis, topAssets, recentEvents } = await getDashboardData(context.orgId)
 
-  // Recent Immutable Events
-  const recentEvents = [
-    {
-      id: 'EVT-001',
-      assetId: 'VEH-2847',
-      eventType: 'INSPECTION_COMPLETED',
-      description: 'Annual DOT inspection passed',
-      timestamp: 'Feb 11, 2026 10:45 AM',
-      status: 'Verified' as const,
-    },
-    {
-      id: 'EVT-002',
-      assetId: 'VEH-1523',
-      eventType: 'OIL_CHANGE',
-      description: 'Routine oil change completed',
-      timestamp: 'Feb 10, 2026 2:30 PM',
-      status: 'Verified' as const,
-    },
-    {
-      id: 'EVT-003',
-      assetId: 'VEH-3891',
-      eventType: 'BRAKE_REPLACEMENT',
-      description: 'Front brake pads replaced',
-      timestamp: 'Feb 10, 2026 11:15 AM',
-      status: 'Verified' as const,
-    },
-    {
-      id: 'EVT-004',
-      assetId: 'VEH-4102',
-      eventType: 'COMPLIANCE_DOCUMENT_UPLOADED',
-      description: 'Insurance certificate renewed',
-      timestamp: 'Feb 9, 2026 4:20 PM',
-      status: 'Pending' as const,
-    },
-  ]
+  // Format asset trust highlights for display
+  const assetTrustHighlights = topAssets.slice(0, 5).map((asset: any) => {
+    const vehicle = asset.vehicle
+    const score = asset.overallScore
+    return {
+      id: vehicle?.vehicleId || asset.assetId.substring(0, 8),
+      name: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Unknown Vehicle',
+      type: vehicle ? `${vehicle.make} Vehicle` : 'Vehicle',
+      trustScore: score,
+      status: score >= 90 ? 'Excellent' : score >= 80 ? 'Good' : score >= 70 ? 'Fair' : 'Attention Needed',
+      lastVerified: format(new Date(asset.lastCalculated), 'MMM d, yyyy'),
+      assetId: asset.assetId,
+    }
+  })
+
+  // Get vehicles for recent events
+  const eventVehicleIds = [...new Set(recentEvents.map((e: any) => e.assetId))]
+  const eventVehicles = await prisma.vehicle.findMany({
+    where: { id: { in: eventVehicleIds } },
+    select: { id: true, vehicleId: true },
+  })
+  const eventVehicleMap = new Map(eventVehicles.map(v => [v.id, v]))
+
+  // Format recent events for display
+  const formattedEvents = recentEvents.map((event: any) => {
+    const eventData = event.eventData as any
+    const vehicle = eventVehicleMap.get(event.assetId)
+    return {
+      id: event.id,
+      assetId: vehicle?.vehicleId || event.assetId.substring(0, 8),
+      eventType: event.eventType,
+      description: eventData?.description || event.eventType.replace(/_/g, ' ').toLowerCase(),
+      timestamp: format(new Date(event.timestamp), 'MMM d, yyyy h:mm a'),
+      status: event.verificationStatus === 'VERIFIED' ? 'Verified' : 'Pending',
+    }
+  })
 
   // Trust score badge styling
   const getTrustScoreBadgeClass = (score: number) => {
@@ -245,7 +284,11 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {assetTrustHighlights.map((asset) => (
-                  <tr key={asset.id} className="border-b last:border-0">
+                  <tr
+                    key={asset.id}
+                    className="border-b last:border-0 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => (window.location.href = `/vehicles/${asset.assetId}`)}
+                  >
                     <td className="py-3 px-4 text-sm font-medium">{asset.id}</td>
                     <td className="py-3 px-4 text-sm">{asset.name}</td>
                     <td className="py-3 px-4 text-sm">{asset.type}</td>
@@ -295,7 +338,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentEvents.map((event) => (
+                    {formattedEvents.map((event) => (
                       <tr key={event.id} className="border-b last:border-0">
                         <td className="py-3 px-4 text-sm font-medium">{event.assetId}</td>
                         <td className="py-3 px-4 text-sm">{event.description}</td>
