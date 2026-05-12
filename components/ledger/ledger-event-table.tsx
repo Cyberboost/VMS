@@ -16,7 +16,7 @@ interface LedgerEvent {
   eventHash: string
   timestamp: Date
   verificationStatus: LedgerVerificationStatus
-  actorUserId: string | null
+  actorUserId?: string | null
 }
 
 interface LedgerEventTableProps {

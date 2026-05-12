@@ -20,12 +20,15 @@ export interface LedgerEvent {
   id: string
   eventType: LedgerEventType
   assetId: string
+  assetType: string
   eventHash: string
   eventData: Record<string, any>
   timestamp: Date
   actorUserId?: string | null
   verificationStatus: LedgerVerificationStatus
   blockchainTxHash?: string | null
+  blockchainNetwork?: string | null
+  anchoredAt?: Date | null
   previousEventHash?: string | null
   signature?: string | null
   metadata?: Record<string, any> | null

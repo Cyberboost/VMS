@@ -44,7 +44,7 @@ async function LedgerEventDetails({ id }: { id: string }) {
         {/* Verification Status */}
         <LedgerVerificationCard
           eventHash={event.eventHash}
-          previousEventHash={event.previousEventHash}
+          previousEventHash={event.previousEventHash || null}
           verificationStatus={event.verificationStatus}
           timestamp={new Date(event.timestamp)}
         />

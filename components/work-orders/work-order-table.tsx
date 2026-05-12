@@ -14,7 +14,7 @@ interface WorkOrder {
   id: string
   description: string
   status: WorkOrderStatus
-  cost: number | null
+  cost: any // Prisma Decimal type
   createdAt: Date
   completedAt: Date | null
   vehicle: {
@@ -131,7 +131,7 @@ export function WorkOrderTable({ workOrders }: WorkOrderTableProps) {
                       <WorkOrderStatusBadge status={wo.status} />
                     </td>
                     <td className="py-3 px-4 text-sm">
-                      {wo.cost ? `$${wo.cost.toFixed(2)}` : '-'}
+                      {wo.cost ? `$${Number(wo.cost).toFixed(2)}` : '-'}
                     </td>
                     <td className="py-3 px-4 text-sm text-muted-foreground">
                       {format(new Date(wo.createdAt), 'MMM d, yyyy')}

@@ -20,8 +20,8 @@ async function WorkOrderDetails({ id }: { id: string }) {
     // Fetch related ledger events
     let ledgerEvents: any[] = []
     try {
-      const events = await getAssetLedgerEvents(workOrder.vehicleId, {
-        eventTypes: [LedgerEventType.WORK_ORDER_CLOSED],
+      const { events } = await getAssetLedgerEvents(workOrder.vehicleId, {
+        eventType: LedgerEventType.WORK_ORDER_CLOSED,
         limit: 10,
       })
       // Filter to only this work order
