@@ -3,23 +3,21 @@
 /**
  * Work Order Server Actions
  *
- * Handles CRUD operations for work orders, mechanic assignment, and completion workflow.
+ * Handles CRUD operations for work orders and completion workflow.
  * Integrates with immutable ledger and trust score calculation.
  */
 
 import prisma from '@/lib/prisma'
-import { requireAuth, scopedWhere } from '@/lib/auth-utils'
+import { requireAuth } from '@/lib/auth-utils'
 import { requirePermission } from '@/lib/rbac'
 import { recordLedgerEvent } from './ledger'
 import { EventDataBuilders } from '@/lib/ledger-utils'
-import { WorkOrderStatus, WorkOrderPriority, LedgerEventType } from '@prisma/client'
+import { WorkOrderStatus, LedgerEventType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 
 export interface WorkOrderFilters {
   status?: WorkOrderStatus
-  priority?: WorkOrderPriority
   vehicleId?: string
-  assignedMechanicId?: string
   departmentId?: string
   startDate?: Date
   endDate?: Date
@@ -37,28 +35,16 @@ export async function listWorkOrders(
   const context = await requireAuth()
   requirePermission(context.role, 'workOrders:read')
 
-  const where: any = scopedWhere(context, {
-    vehicle: { orgId },
-  })
+  const where: any = {
+    orgId,
+  }
 
   if (filters?.status) {
     where.status = filters.status
   }
 
-  if (filters?.priority) {
-    where.priority = filters.priority
-  }
-
   if (filters?.vehicleId) {
     where.vehicleId = filters.vehicleId
-  }
-
-  if (filters?.assignedMechanicId) {
-    where.assignedMechanicId = filters.assignedMechanicId
-  }
-
-  if (filters?.departmentId) {
-    where.vehicle = { ...where.vehicle, departmentId: filters.departmentId }
   }
 
   if (filters?.startDate || filters?.endDate) {
@@ -73,9 +59,8 @@ export async function listWorkOrders(
 
   if (filters?.searchTerm) {
     where.OR = [
-      { workOrderNumber: { contains: filters.searchTerm, mode: 'insensitive' } },
       { description: { contains: filters.searchTerm, mode: 'insensitive' } },
-      { vehicle: { name: { contains: filters.searchTerm, mode: 'insensitive' } } },
+      { vehicle: { vehicleId: { contains: filters.searchTerm, mode: 'insensitive' } } },
     ]
   }
 
@@ -86,7 +71,7 @@ export async function listWorkOrders(
         vehicle: {
           select: {
             id: true,
-            name: true,
+            vehicleId: true,
             make: true,
             model: true,
             year: true,
@@ -94,16 +79,8 @@ export async function listWorkOrders(
             plateNumber: true,
           },
         },
-        assignedMechanic: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
       },
-      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+      orderBy: { createdAt: 'desc' },
       take: options?.limit || 50,
       skip: options?.offset || 0,
     }),
@@ -123,17 +100,10 @@ export async function getWorkOrderById(workOrderId: string) {
   const workOrder = await prisma.workOrder.findUnique({
     where: { id: workOrderId },
     include: {
-      vehicle: {
+      vehicle: true,
+      partInstallations: {
         include: {
-          department: true,
-        },
-      },
-      assignedMechanic: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
+          part: true,
         },
       },
     },
@@ -145,7 +115,7 @@ export async function getWorkOrderById(workOrderId: string) {
 
   // Check scoped access
   const hasAccess = context.role === 'SUPER_ADMIN' ||
-                   context.orgId === workOrder.vehicle.orgId
+                   context.orgId === workOrder.orgId
 
   if (!hasAccess) {
     throw new Error('Access denied')
@@ -159,14 +129,9 @@ export async function getWorkOrderById(workOrderId: string) {
  */
 export async function createWorkOrder(data: {
   vehicleId: string
-  workOrderNumber: string
-  type: string
-  priority: WorkOrderPriority
   description: string
-  estimatedCost?: number
-  dueDate?: Date
-  assignedMechanicId?: string
-  partsNeeded?: string[]
+  maintenancePlanId?: string
+  cost?: number
 }) {
   const context = await requireAuth()
   requirePermission(context.role, 'workOrders:write')
@@ -174,7 +139,7 @@ export async function createWorkOrder(data: {
   // Verify vehicle access
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: data.vehicleId },
-    select: { id: true, orgId: true, name: true },
+    select: { id: true, orgId: true, vehicleId: true },
   })
 
   if (!vehicle) {
@@ -190,22 +155,19 @@ export async function createWorkOrder(data: {
   // Create work order
   const workOrder = await prisma.workOrder.create({
     data: {
+      orgId: vehicle.orgId,
       vehicleId: data.vehicleId,
-      workOrderNumber: data.workOrderNumber,
-      type: data.type,
-      priority: data.priority,
       description: data.description,
-      estimatedCost: data.estimatedCost,
-      dueDate: data.dueDate,
-      assignedMechanicId: data.assignedMechanicId,
-      status: WorkOrderStatus.Open,
+      maintenancePlanId: data.maintenancePlanId,
+      cost: data.cost,
+      status: WorkOrderStatus.PENDING,
       createdBy: context.userId,
     },
     include: {
       vehicle: {
         select: {
           id: true,
-          name: true,
+          vehicleId: true,
           make: true,
           model: true,
         },
@@ -225,13 +187,8 @@ export async function createWorkOrder(data: {
 export async function updateWorkOrder(
   workOrderId: string,
   data: Partial<{
-    type: string
-    priority: WorkOrderPriority
     description: string
-    estimatedCost: number
-    actualCost: number
-    dueDate: Date
-    assignedMechanicId: string
+    cost: number
     status: WorkOrderStatus
   }>
 ) {
@@ -245,13 +202,6 @@ export async function updateWorkOrder(
     data,
     include: {
       vehicle: true,
-      assignedMechanic: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-        },
-      },
     },
   })
 
@@ -263,47 +213,14 @@ export async function updateWorkOrder(
 }
 
 /**
- * Assign mechanic to work order
- */
-export async function assignMechanic(workOrderId: string, mechanicId: string) {
-  const context = await requireAuth()
-  requirePermission(context.role, 'workOrders:write')
-
-  const workOrder = await prisma.workOrder.update({
-    where: { id: workOrderId },
-    data: {
-      assignedMechanicId: mechanicId,
-      status: WorkOrderStatus.InProgress,
-    },
-    include: {
-      vehicle: true,
-      assignedMechanic: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-        },
-      },
-    },
-  })
-
-  revalidatePath('/work-orders')
-  revalidatePath(`/work-orders/${workOrderId}`)
-
-  return workOrder
-}
-
-/**
  * Complete a work order
  * This generates an immutable ledger event and recalculates trust score
  */
 export async function completeWorkOrder(
   workOrderId: string,
   completionData: {
-    actualCost?: number
-    laborHours?: number
+    cost?: number
     notes?: string
-    partsUsed?: Array<{ partId: string; quantity: number }>
   }
 ) {
   const context = await requireAuth()
@@ -311,7 +228,7 @@ export async function completeWorkOrder(
 
   const existing = await getWorkOrderById(workOrderId)
 
-  if (existing.status === WorkOrderStatus.Completed) {
+  if (existing.status === WorkOrderStatus.COMPLETED) {
     throw new Error('Work order is already completed')
   }
 
@@ -319,26 +236,17 @@ export async function completeWorkOrder(
   const workOrder = await prisma.workOrder.update({
     where: { id: workOrderId },
     data: {
-      status: WorkOrderStatus.Completed,
-      completedDate: new Date(),
-      actualCost: completionData.actualCost,
-      laborHours: completionData.laborHours,
-      completionNotes: completionData.notes,
+      status: WorkOrderStatus.COMPLETED,
+      completedAt: new Date(),
+      cost: completionData.cost,
     },
     include: {
       vehicle: {
         select: {
           id: true,
-          name: true,
+          vehicleId: true,
           make: true,
           model: true,
-        },
-      },
-      assignedMechanic: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
         },
       },
     },
@@ -347,24 +255,18 @@ export async function completeWorkOrder(
   // Record immutable ledger event
   try {
     await recordLedgerEvent({
-      eventType: LedgerEventType.WorkOrderCompletion,
+      eventType: LedgerEventType.WORK_ORDER_CLOSED,
       assetId: workOrder.vehicleId,
       eventData: EventDataBuilders.workOrderCompletion(workOrder.id, {
-        workOrderNumber: workOrder.workOrderNumber,
-        type: workOrder.type,
-        priority: workOrder.priority,
         description: workOrder.description,
-        actualCost: completionData.actualCost,
-        laborHours: completionData.laborHours,
-        mechanicName: workOrder.assignedMechanic
-          ? `${workOrder.assignedMechanic.firstName} ${workOrder.assignedMechanic.lastName}`
-          : 'Unassigned',
-        completedDate: workOrder.completedDate?.toISOString(),
+        cost: completionData.cost,
+        completedDate: workOrder.completedAt?.toISOString(),
+        notes: completionData.notes,
       }),
       actorUserId: context.userId,
       metadata: {
         workOrderId: workOrder.id,
-        vehicleName: workOrder.vehicle.name,
+        vehicleId: workOrder.vehicle.vehicleId,
       },
     })
   } catch (error) {
@@ -389,8 +291,7 @@ export async function cancelWorkOrder(workOrderId: string, reason: string) {
   const workOrder = await prisma.workOrder.update({
     where: { id: workOrderId },
     data: {
-      status: WorkOrderStatus.Cancelled,
-      completionNotes: `Cancelled: ${reason}`,
+      status: WorkOrderStatus.CANCELLED,
     },
     include: {
       vehicle: true,
@@ -411,18 +312,11 @@ export async function getVehicleWorkOrderStats(vehicleId: string) {
   const context = await requireAuth()
   requirePermission(context.role, 'workOrders:read')
 
-  const [total, completed, open, inProgress, overdue] = await Promise.all([
+  const [total, completed, pending, inProgress] = await Promise.all([
     prisma.workOrder.count({ where: { vehicleId } }),
-    prisma.workOrder.count({ where: { vehicleId, status: WorkOrderStatus.Completed } }),
-    prisma.workOrder.count({ where: { vehicleId, status: WorkOrderStatus.Open } }),
-    prisma.workOrder.count({ where: { vehicleId, status: WorkOrderStatus.InProgress } }),
-    prisma.workOrder.count({
-      where: {
-        vehicleId,
-        status: { notIn: [WorkOrderStatus.Completed, WorkOrderStatus.Cancelled] },
-        dueDate: { lt: new Date() },
-      },
-    }),
+    prisma.workOrder.count({ where: { vehicleId, status: WorkOrderStatus.COMPLETED } }),
+    prisma.workOrder.count({ where: { vehicleId, status: WorkOrderStatus.PENDING } }),
+    prisma.workOrder.count({ where: { vehicleId, status: WorkOrderStatus.IN_PROGRESS } }),
   ])
 
   const completionRate = total > 0 ? (completed / total) * 100 : 0
@@ -430,9 +324,8 @@ export async function getVehicleWorkOrderStats(vehicleId: string) {
   return {
     total,
     completed,
-    open,
+    pending,
     inProgress,
-    overdue,
     completionRate: Math.round(completionRate),
   }
 }
@@ -444,72 +337,18 @@ export async function getOrganizationWorkOrderStats(orgId: string) {
   const context = await requireAuth()
   requirePermission(context.role, 'workOrders:read')
 
-  const vehicles = await prisma.vehicle.findMany({
-    where: { orgId },
-    select: { id: true },
-  })
-
-  const vehicleIds = vehicles.map(v => v.id)
-
-  const [total, completed, open, inProgress, overdue] = await Promise.all([
-    prisma.workOrder.count({ where: { vehicleId: { in: vehicleIds } } }),
-    prisma.workOrder.count({
-      where: { vehicleId: { in: vehicleIds }, status: WorkOrderStatus.Completed },
-    }),
-    prisma.workOrder.count({ where: { vehicleId: { in: vehicleIds }, status: WorkOrderStatus.Open } }),
-    prisma.workOrder.count({
-      where: { vehicleId: { in: vehicleIds }, status: WorkOrderStatus.InProgress },
-    }),
-    prisma.workOrder.count({
-      where: {
-        vehicleId: { in: vehicleIds },
-        status: { notIn: [WorkOrderStatus.Completed, WorkOrderStatus.Cancelled] },
-        dueDate: { lt: new Date() },
-      },
-    }),
+  const [total, completed, pending, inProgress] = await Promise.all([
+    prisma.workOrder.count({ where: { orgId } }),
+    prisma.workOrder.count({ where: { orgId, status: WorkOrderStatus.COMPLETED } }),
+    prisma.workOrder.count({ where: { orgId, status: WorkOrderStatus.PENDING } }),
+    prisma.workOrder.count({ where: { orgId, status: WorkOrderStatus.IN_PROGRESS } }),
   ])
 
   return {
     total,
     completed,
-    open,
+    pending,
     inProgress,
-    overdue,
   }
 }
 
-/**
- * Get overdue work orders
- */
-export async function getOverdueWorkOrders(orgId: string) {
-  const context = await requireAuth()
-  requirePermission(context.role, 'workOrders:read')
-
-  const workOrders = await prisma.workOrder.findMany({
-    where: {
-      vehicle: { orgId },
-      status: { notIn: [WorkOrderStatus.Completed, WorkOrderStatus.Cancelled] },
-      dueDate: { lt: new Date() },
-    },
-    include: {
-      vehicle: {
-        select: {
-          id: true,
-          name: true,
-          make: true,
-          model: true,
-        },
-      },
-      assignedMechanic: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-        },
-      },
-    },
-    orderBy: { dueDate: 'asc' },
-  })
-
-  return workOrders
-}

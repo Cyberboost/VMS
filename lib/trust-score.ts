@@ -12,7 +12,7 @@
  */
 
 import prisma from '@/lib/prisma'
-import { VehicleStatus, WorkOrderStatus, InspectionStatus, IncidentSeverity } from '@prisma/client'
+import { VehicleStatus, WorkOrderStatus, IncidentSeverity } from '@prisma/client'
 
 export interface TrustScoreBreakdown {
   totalScore: number
@@ -103,17 +103,16 @@ async function calculateMaintenanceScore(assetId: string, lookbackDate: Date): P
     return 70
   }
 
-  const completed = workOrders.filter(wo => wo.status === WorkOrderStatus.Completed).length
+  const completed = workOrders.filter(wo => wo.status === WorkOrderStatus.COMPLETED).length
   const total = workOrders.length
   const completionRate = (completed / total) * 100
 
   // Check for overdue work orders
   const now = new Date()
   const overdue = workOrders.filter(
-    wo => wo.status !== WorkOrderStatus.Completed &&
-         wo.status !== WorkOrderStatus.Cancelled &&
-         wo.dueDate &&
-         wo.dueDate < now
+    wo => wo.status !== WorkOrderStatus.COMPLETED &&
+         wo.status !== WorkOrderStatus.CANCELLED &&
+         wo.completedAt === null
   ).length
 
   // Calculate score
@@ -133,7 +132,7 @@ async function calculateMaintenanceScore(assetId: string, lookbackDate: Date): P
 async function calculateInspectionScore(assetId: string, lookbackDate: Date): Promise<number> {
   const inspections = await prisma.inspection.findMany({
     where: {
-      assetId: assetId,
+      vehicleId: assetId,
       inspectionDate: { gte: lookbackDate },
     },
     include: {
@@ -147,14 +146,11 @@ async function calculateInspectionScore(assetId: string, lookbackDate: Date): Pr
   }
 
   // Calculate pass rate
-  const passed = inspections.filter(i => i.status === InspectionStatus.Passed).length
+  const passed = inspections.filter(i => i.status === 'Passed').length
   const passRate = (passed / inspections.length) * 100
 
-  // Check for unresolved critical defects
-  const criticalDefects = inspections.filter(
-    i => i.status === InspectionStatus.Failed &&
-         i.items.some(item => item.severity === 'Critical' && !item.resolved)
-  ).length
+  // Check for failed inspections
+  const failed = inspections.filter(i => i.status === 'Failed').length
 
   // Inspection frequency (should have at least one inspection per quarter)
   const daysSinceStart = Math.floor((new Date().getTime() - lookbackDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -164,9 +160,9 @@ async function calculateInspectionScore(assetId: string, lookbackDate: Date): Pr
   // Calculate score
   let score = passRate * 0.6 + frequencyScore * 0.4
 
-  // Penalty for critical defects
-  const defectPenalty = Math.min(40, criticalDefects * 15)
-  score = Math.max(0, score - defectPenalty)
+  // Penalty for failed inspections
+  const failPenalty = Math.min(40, failed * 10)
+  score = Math.max(0, score - failPenalty)
 
   return Math.round(score)
 }
@@ -178,8 +174,11 @@ async function calculateInspectionScore(assetId: string, lookbackDate: Date): Pr
 async function calculateComplianceScore(assetId: string): Promise<number> {
   const [complianceEvents, documents] = await Promise.all([
     prisma.complianceEvent.findMany({
-      where: { vehicleId: assetId },
-      orderBy: { eventDate: 'desc' },
+      where: {
+        entityType: 'VEHICLE',
+        entityId: assetId
+      },
+      orderBy: { createdAt: 'desc' },
       take: 50,
     }),
     prisma.complianceDocument.findMany({
@@ -192,17 +191,17 @@ async function calculateComplianceScore(assetId: string): Promise<number> {
 
   let score = 100
 
-  // Check for open violations
-  const openViolations = complianceEvents.filter(e => e.status === 'Open').length
-  score -= openViolations * 15
+  // Check for overdue and critical violations
+  const criticalEvents = complianceEvents.filter(e => e.status === 'CRITICAL' || e.status === 'OVERDUE').length
+  score -= criticalEvents * 15
 
   // Check for expired or expiring documents
   const now = new Date()
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-  const expiredDocs = documents.filter(d => d.expiryDate && d.expiryDate < now).length
+  const expiredDocs = documents.filter(d => d.expirationDate && d.expirationDate < now).length
   const expiringSoon = documents.filter(
-    d => d.expiryDate && d.expiryDate >= now && d.expiryDate <= thirtyDaysFromNow
+    d => d.expirationDate && d.expirationDate >= now && d.expirationDate <= thirtyDaysFromNow
   ).length
 
   score -= expiredDocs * 20
@@ -219,7 +218,7 @@ async function calculateIncidentScore(assetId: string, lookbackDate: Date): Prom
   const incidents = await prisma.incident.findMany({
     where: {
       vehicleId: assetId,
-      date: { gte: lookbackDate },
+      incidentDate: { gte: lookbackDate },
     },
   })
 
@@ -267,7 +266,7 @@ async function calculateLedgerScore(assetId: string, lookbackDate: Date): Promis
   }
 
   // Calculate verification rate
-  const verified = ledgerEvents.filter(e => e.verificationStatus === 'Verified').length
+  const verified = ledgerEvents.filter(e => e.verificationStatus === 'VERIFIED').length
   const verificationRate = (verified / ledgerEvents.length) * 100
 
   // Event count score (more events = better documentation)
@@ -288,7 +287,7 @@ async function calculateLedgerScore(assetId: string, lookbackDate: Date): Promis
  */
 async function calculatePartsScore(assetId: string): Promise<number> {
   const installations = await prisma.partInstallation.findMany({
-    where: { assetId: assetId },
+    where: { vehicleId: assetId },
     include: { part: true },
   })
 
@@ -297,12 +296,12 @@ async function calculatePartsScore(assetId: string): Promise<number> {
     return 70
   }
 
-  // Calculate OEM percentage
-  const oemParts = installations.filter(i => i.part.isOEM).length
-  const oemPercentage = (oemParts / installations.length) * 100
+  // Calculate percentage of parts with manufacturer info (proxy for quality/traceability)
+  const partsWithManufacturer = installations.filter(i => i.part.manufacturer).length
+  const traceabilityPercentage = (partsWithManufacturer / installations.length) * 100
 
-  // OEM parts get higher scores
-  const score = 50 + (oemPercentage * 0.5)
+  // Parts with manufacturer info get higher scores
+  const score = 50 + (traceabilityPercentage * 0.5)
 
   return Math.round(score)
 }
@@ -336,8 +335,8 @@ async function calculateDowntimeScore(assetId: string, lookbackDate: Date): Prom
 
   // Calculate downtime from work orders
   const totalDowntimeDays = vehicle.workOrders.reduce((total, wo) => {
-    if (wo.completedDate && wo.createdAt) {
-      const days = Math.floor((wo.completedDate.getTime() - wo.createdAt.getTime()) / (1000 * 60 * 60 * 24))
+    if (wo.completedAt && wo.createdAt) {
+      const days = Math.floor((wo.completedAt.getTime() - wo.createdAt.getTime()) / (1000 * 60 * 60 * 24))
       return total + days
     }
     return total
@@ -363,28 +362,24 @@ export async function updateAssetTrustScore(assetId: string): Promise<void> {
     where: { assetId },
     create: {
       assetId,
-      score: breakdown.totalScore,
+      overallScore: breakdown.totalScore,
       maintenanceScore: breakdown.maintenanceScore,
       inspectionScore: breakdown.inspectionScore,
       complianceScore: breakdown.complianceScore,
       incidentScore: breakdown.incidentScore,
-      ledgerScore: breakdown.ledgerScore,
-      partsScore: breakdown.partsScore,
-      downtimeScore: breakdown.downtimeScore,
-      calculatedAt: breakdown.calculatedAt,
-      breakdown: breakdown as any,
+      verificationScore: breakdown.ledgerScore,
+      lastCalculated: breakdown.calculatedAt,
+      metadata: breakdown as any,
     },
     update: {
-      score: breakdown.totalScore,
+      overallScore: breakdown.totalScore,
       maintenanceScore: breakdown.maintenanceScore,
       inspectionScore: breakdown.inspectionScore,
       complianceScore: breakdown.complianceScore,
       incidentScore: breakdown.incidentScore,
-      ledgerScore: breakdown.ledgerScore,
-      partsScore: breakdown.partsScore,
-      downtimeScore: breakdown.downtimeScore,
-      calculatedAt: breakdown.calculatedAt,
-      breakdown: breakdown as any,
+      verificationScore: breakdown.ledgerScore,
+      lastCalculated: breakdown.calculatedAt,
+      metadata: breakdown as any,
     },
   })
 }
@@ -423,21 +418,21 @@ export async function getAssetTrustScore(assetId: string): Promise<TrustScoreBre
   if (cached) {
     // Check if cache is stale (older than 1 hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
-    if (cached.calculatedAt < oneHourAgo) {
+    if (cached.lastCalculated < oneHourAgo) {
       // Recalculate in background
       updateAssetTrustScore(assetId).catch(console.error)
     }
 
     return {
-      totalScore: cached.score,
-      maintenanceScore: cached.maintenanceScore,
-      inspectionScore: cached.inspectionScore,
-      complianceScore: cached.complianceScore,
-      incidentScore: cached.incidentScore,
-      ledgerScore: cached.ledgerScore,
-      partsScore: cached.partsScore,
-      downtimeScore: cached.downtimeScore,
-      calculatedAt: cached.calculatedAt,
+      totalScore: cached.overallScore,
+      maintenanceScore: cached.maintenanceScore || 0,
+      inspectionScore: cached.inspectionScore || 0,
+      complianceScore: cached.complianceScore || 0,
+      incidentScore: cached.incidentScore || 0,
+      ledgerScore: cached.verificationScore || 0,
+      partsScore: 0, // Not stored separately
+      downtimeScore: 0, // Not stored separately
+      calculatedAt: cached.lastCalculated,
     }
   }
 

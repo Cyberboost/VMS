@@ -207,19 +207,19 @@ export function formatEventHash(hash: string): string {
  */
 export function getEventTypeDisplayName(eventType: LedgerEventType): string {
   const displayNames: Record<LedgerEventType, string> = {
-    [LedgerEventType.WorkOrderCompletion]: 'Work Order Completion',
-    [LedgerEventType.InspectionCompletion]: 'Inspection Completion',
-    [LedgerEventType.PartInstallation]: 'Part Installation',
-    [LedgerEventType.ComplianceDocumentUpload]: 'Compliance Document Upload',
-    [LedgerEventType.AssetStatusChange]: 'Asset Status Change',
-    [LedgerEventType.CertificationRenewal]: 'Certification Renewal',
-    [LedgerEventType.IncidentReport]: 'Incident Report',
-    [LedgerEventType.AssetTransfer]: 'Asset Transfer',
-    [LedgerEventType.AssetDecommission]: 'Asset Decommission',
-    [LedgerEventType.ComplianceViolation]: 'Compliance Violation',
-    [LedgerEventType.AssetRegistration]: 'Asset Registration',
-    [LedgerEventType.AssetAcquisition]: 'Asset Acquisition',
-    [LedgerEventType.DriverAssignment]: 'Driver Assignment',
+    [LedgerEventType.INSPECTION_COMPLETED]: 'Inspection Completed',
+    [LedgerEventType.WORK_ORDER_CLOSED]: 'Work Order Closed',
+    [LedgerEventType.PART_INSTALLED]: 'Part Installed',
+    [LedgerEventType.BRAKE_REPLACEMENT]: 'Brake Replacement',
+    [LedgerEventType.OIL_CHANGE]: 'Oil Change',
+    [LedgerEventType.VENDOR_APPROVAL]: 'Vendor Approval',
+    [LedgerEventType.COMPLIANCE_DOCUMENT_UPLOADED]: 'Compliance Document Uploaded',
+    [LedgerEventType.ASSET_TRANSFERRED]: 'Asset Transferred',
+    [LedgerEventType.ASSET_RETIRED]: 'Asset Retired',
+    [LedgerEventType.MAINTENANCE_COMPLETED]: 'Maintenance Completed',
+    [LedgerEventType.SAFETY_CHECK_PASSED]: 'Safety Check Passed',
+    [LedgerEventType.CERTIFICATION_RENEWED]: 'Certification Renewed',
+    [LedgerEventType.DEFECT_RESOLVED]: 'Defect Resolved',
   }
 
   return displayNames[eventType] || eventType
@@ -234,29 +234,29 @@ export function getVerificationStatusInfo(status: LedgerVerificationStatus): {
   icon: string
 } {
   const statusInfo = {
-    [LedgerVerificationStatus.Verified]: {
+    [LedgerVerificationStatus.VERIFIED]: {
       label: 'Verified',
       color: 'green' as const,
       icon: '✓',
     },
-    [LedgerVerificationStatus.Pending]: {
+    [LedgerVerificationStatus.PENDING]: {
       label: 'Pending',
       color: 'yellow' as const,
       icon: '⏱',
     },
-    [LedgerVerificationStatus.Failed]: {
+    [LedgerVerificationStatus.FAILED]: {
       label: 'Failed',
       color: 'red' as const,
       icon: '✗',
     },
-    [LedgerVerificationStatus.Unverified]: {
-      label: 'Unverified',
-      color: 'gray' as const,
-      icon: '○',
+    [LedgerVerificationStatus.ANCHORED]: {
+      label: 'Anchored',
+      color: 'green' as const,
+      icon: '⚓',
     },
   }
 
-  return statusInfo[status] || statusInfo[LedgerVerificationStatus.Unverified]
+  return statusInfo[status] || statusInfo[LedgerVerificationStatus.PENDING]
 }
 
 /**
@@ -337,11 +337,11 @@ export function calculateChainStats(events: LedgerEvent[]): {
 
   events.forEach(event => {
     // Count by verification status
-    if (event.verificationStatus === LedgerVerificationStatus.Verified) {
+    if (event.verificationStatus === LedgerVerificationStatus.VERIFIED) {
       stats.verifiedEvents++
-    } else if (event.verificationStatus === LedgerVerificationStatus.Pending) {
+    } else if (event.verificationStatus === LedgerVerificationStatus.PENDING) {
       stats.pendingEvents++
-    } else if (event.verificationStatus === LedgerVerificationStatus.Failed) {
+    } else if (event.verificationStatus === LedgerVerificationStatus.FAILED) {
       stats.failedEvents++
     }
 

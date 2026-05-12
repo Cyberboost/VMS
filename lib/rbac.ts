@@ -27,6 +27,10 @@ export type Permission =
   | 'departments:manage'
   | 'maintenance:read'
   | 'maintenance:manage'
+  | 'workOrders:read'
+  | 'workOrders:write'
+  | 'ledger:read'
+  | 'ledger:write'
 
 const rolePermissions: Record<UserRole, Permission[]> = {
   [UserRole.SUPER_ADMIN]: [
@@ -56,6 +60,10 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'departments:manage',
     'maintenance:read',
     'maintenance:manage',
+    'workOrders:read',
+    'workOrders:write',
+    'ledger:read',
+    'ledger:write',
   ],
   [UserRole.ORG_ADMIN]: [
     'vehicles:read',
@@ -84,6 +92,10 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'departments:manage',
     'maintenance:read',
     'maintenance:manage',
+    'workOrders:read',
+    'workOrders:write',
+    'ledger:read',
+    'ledger:write',
   ],
   [UserRole.FLEET_MANAGER]: [
     'vehicles:read',
@@ -109,6 +121,9 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'departments:read',
     'maintenance:read',
     'maintenance:manage',
+    'workOrders:read',
+    'workOrders:write',
+    'ledger:read',
   ],
   [UserRole.DEPT_MANAGER]: [
     'vehicles:read',
@@ -123,6 +138,9 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'compliance:read',
     'departments:read',
     'maintenance:read',
+    'workOrders:read',
+    'workOrders:write',
+    'ledger:read',
   ],
   [UserRole.COMPLIANCE_OFFICER]: [
     'vehicles:read',
@@ -132,6 +150,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'compliance:read',
     'compliance:manage',
     'departments:read',
+    'ledger:read',
   ],
   [UserRole.READ_ONLY]: [
     'vehicles:read',
@@ -142,6 +161,8 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'compliance:read',
     'departments:read',
     'maintenance:read',
+    'workOrders:read',
+    'ledger:read',
   ],
   [UserRole.DRIVER]: [
     'vehicles:read',

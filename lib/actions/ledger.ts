@@ -29,6 +29,16 @@ export async function recordLedgerEvent(data: LedgerEventData): Promise<LedgerEv
   const context = await requireAuth()
   requirePermission(context.role, 'ledger:write')
 
+  // Get the asset (vehicle) to retrieve orgId
+  const asset = await prisma.vehicle.findUnique({
+    where: { id: data.assetId },
+    select: { orgId: true },
+  })
+
+  if (!asset) {
+    throw new Error(`Asset not found: ${data.assetId}`)
+  }
+
   // Get the last event for this asset to chain events together
   const lastEvent = await prisma.immutableLedgerEvent.findFirst({
     where: { assetId: data.assetId },
@@ -53,13 +63,14 @@ export async function recordLedgerEvent(data: LedgerEventData): Promise<LedgerEv
   // Create the ledger event
   const event = await prisma.immutableLedgerEvent.create({
     data: {
+      orgId: asset.orgId,
       eventType: data.eventType,
       assetId: data.assetId,
       eventHash,
       eventData: data.eventData,
       timestamp,
       actorUserId: data.actorUserId || context.userId,
-      verificationStatus: LedgerVerificationStatus.Verified,
+      verificationStatus: LedgerVerificationStatus.VERIFIED,
       previousEventHash,
       signature,
       metadata: data.metadata || {},
@@ -71,7 +82,7 @@ export async function recordLedgerEvent(data: LedgerEventData): Promise<LedgerEv
     console.error(`Failed to update trust score for asset ${data.assetId}:`, error)
   })
 
-  return event
+  return event as LedgerEvent
 }
 
 /**
@@ -116,7 +127,7 @@ export async function getAssetLedgerEvents(
     prisma.immutableLedgerEvent.count({ where }),
   ])
 
-  return { events, total }
+  return { events: events as LedgerEvent[], total }
 }
 
 /**
@@ -172,7 +183,7 @@ export async function getOrganizationLedgerEvents(
     prisma.immutableLedgerEvent.count({ where }),
   ])
 
-  return { events, total }
+  return { events: events as LedgerEvent[], total }
 }
 
 /**
@@ -186,7 +197,7 @@ export async function getLedgerEventById(eventId: string): Promise<LedgerEvent |
     where: { id: eventId },
   })
 
-  return event
+  return event as LedgerEvent | null
 }
 
 /**
@@ -200,7 +211,7 @@ export async function getLedgerEventByHash(eventHash: string): Promise<LedgerEve
     where: { eventHash },
   })
 
-  return event
+  return event as LedgerEvent | null
 }
 
 /**
@@ -222,10 +233,10 @@ export async function verifyLedgerEvent(eventId: string): Promise<{
     return { isValid: false, event: null, reason: 'Event not found' }
   }
 
-  const isValid = verifyEventHash(event)
+  const isValid = verifyEventHash(event as LedgerEvent)
 
   if (!isValid) {
-    return { isValid: false, event, reason: 'Event hash verification failed' }
+    return { isValid: false, event: event as LedgerEvent, reason: 'Event hash verification failed' }
   }
 
   // Verify chain link if there's a previous event
@@ -235,15 +246,15 @@ export async function verifyLedgerEvent(eventId: string): Promise<{
     })
 
     if (!previousEvent) {
-      return { isValid: false, event, reason: 'Previous event in chain not found' }
+      return { isValid: false, event: event as LedgerEvent, reason: 'Previous event in chain not found' }
     }
 
     if (previousEvent.eventHash !== event.previousEventHash) {
-      return { isValid: false, event, reason: 'Chain link broken' }
+      return { isValid: false, event: event as LedgerEvent, reason: 'Chain link broken' }
     }
   }
 
-  return { isValid: true, event }
+  return { isValid: true, event: event as LedgerEvent }
 }
 
 /**
@@ -263,11 +274,11 @@ export async function verifyAssetEventChain(assetId: string): Promise<{
     orderBy: { timestamp: 'asc' },
   })
 
-  const verification = verifyEventChain(events)
+  const verification = verifyEventChain(events as LedgerEvent[])
 
   let brokenEvent: LedgerEvent | undefined
   if (!verification.isValid && verification.brokenLinkIndex !== undefined) {
-    brokenEvent = events[verification.brokenLinkIndex]
+    brokenEvent = events[verification.brokenLinkIndex] as LedgerEvent
   }
 
   return {
@@ -289,7 +300,7 @@ export async function getAssetLedgerStats(assetId: string) {
     where: { assetId },
   })
 
-  return calculateChainStats(events)
+  return calculateChainStats(events as LedgerEvent[])
 }
 
 /**
@@ -311,7 +322,7 @@ export async function getOrganizationLedgerStats(orgId: string) {
     where: { assetId: { in: assetIds } },
   })
 
-  return calculateChainStats(events)
+  return calculateChainStats(events as LedgerEvent[])
 }
 
 /**
@@ -380,7 +391,7 @@ export async function searchLedgerEvents(
     prisma.immutableLedgerEvent.count({ where }),
   ])
 
-  return { events, total }
+  return { events: events as LedgerEvent[], total }
 }
 
 /**
