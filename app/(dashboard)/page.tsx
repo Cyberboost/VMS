@@ -348,7 +348,7 @@ export default function DashboardPage() {
                   View Compliance Alerts
                 </Button>
               </Link>
-              <Link href="/ledger" className="block">
+              <Link href="/trust-ledger" className="block">
                 <Button variant="outline" className="w-full justify-start">
                   <Shield className="h-4 w-4 mr-2" />
                   Trust Ledger
