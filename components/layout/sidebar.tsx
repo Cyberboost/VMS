@@ -24,7 +24,7 @@ const navigation = [
   { name: 'Inspections', href: '/inspections', icon: ClipboardCheck },
   { name: 'Compliance', href: '/compliance', icon: FileCheck },
   { name: 'Incidents', href: '/incidents', icon: AlertTriangle },
-  { name: 'Trust Ledger', href: '/ledger', icon: Shield },
+  { name: 'Trust Ledger', href: '/trust-ledger', icon: Shield },
   { name: 'Surplus', href: '/surplus', icon: Archive },
   { name: 'Reports', href: '/reports', icon: FileText },
 ]
