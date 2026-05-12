@@ -25,6 +25,8 @@ async function main() {
 
   // Clear existing data (in reverse dependency order)
   console.log('🧹 Cleaning existing data...')
+  await prisma.assetTrustScore.deleteMany()
+  await prisma.immutableLedgerEvent.deleteMany()
   await prisma.auditLog.deleteMany()
   await prisma.notificationQueue.deleteMany()
   await prisma.savedView.deleteMany()
@@ -1918,6 +1920,108 @@ async function main() {
   console.log('✓ Created 8 work orders')
 
   // ============================================================================
+  // CREATE IMMUTABLE LEDGER EVENTS
+  // ============================================================================
+
+  const { LedgerEventType, LedgerVerificationStatus } = await import('@prisma/client')
+  const { recordLedgerEvent } = await import('../lib/actions/ledger')
+  const { EventDataBuilders } = await import('../lib/ledger-utils')
+
+  // Create ledger events for completed work orders
+  const ledgerEvents = []
+
+  try {
+    // Work Order 1 completion
+    const event1 = await recordLedgerEvent({
+      eventType: LedgerEventType.WORK_ORDER_CLOSED,
+      assetId: vehicles[0].id,
+      eventData: EventDataBuilders.workOrderCompletion(workOrders[0].id, {
+        description: 'Oil change and filter replacement',
+        cost: 125.50,
+        completedDate: workOrders[0].completedAt?.toISOString(),
+      }),
+      actorUserId: fleetManager1.id,
+      metadata: {
+        workOrderId: workOrders[0].id,
+        vehicleId: vehicles[0].vehicleId,
+      },
+    })
+    ledgerEvents.push(event1)
+
+    // Work Order 2 completion
+    const event2 = await recordLedgerEvent({
+      eventType: LedgerEventType.WORK_ORDER_CLOSED,
+      assetId: vehicles[1].id,
+      eventData: EventDataBuilders.workOrderCompletion(workOrders[1].id, {
+        description: 'Annual DOT inspection - passed',
+        cost: 275.00,
+        completedDate: workOrders[1].completedAt?.toISOString(),
+      }),
+      actorUserId: fleetManager1.id,
+      metadata: {
+        workOrderId: workOrders[1].id,
+        vehicleId: vehicles[1].vehicleId,
+      },
+    })
+    ledgerEvents.push(event2)
+
+    // Inspection completed
+    const event3 = await recordLedgerEvent({
+      eventType: LedgerEventType.INSPECTION_COMPLETED,
+      assetId: vehicles[0].id,
+      eventData: {
+        description: 'Quarterly safety inspection - passed',
+        inspector: fleetManager1.name,
+        result: 'PASSED',
+        score: 98,
+      },
+      actorUserId: fleetManager1.id,
+      metadata: {
+        vehicleId: vehicles[0].vehicleId,
+      },
+    })
+    ledgerEvents.push(event3)
+
+    // Brake replacement
+    const event4 = await recordLedgerEvent({
+      eventType: LedgerEventType.BRAKE_REPLACEMENT,
+      assetId: vehicles[2].id,
+      eventData: {
+        description: 'Front brake pads and rotors replaced',
+        partNumbers: ['BP-4521', 'ROT-8842'],
+        cost: 485.00,
+      },
+      actorUserId: fleetManager1.id,
+      metadata: {
+        vehicleId: vehicles[2].vehicleId,
+      },
+    })
+    ledgerEvents.push(event4)
+
+    console.log('✓ Created 4 immutable ledger events')
+  } catch (error) {
+    console.warn('⚠ Warning: Could not create some ledger events:', error)
+  }
+
+  // ============================================================================
+  // CALCULATE AND STORE TRUST SCORES
+  // ============================================================================
+
+  const { updateAssetTrustScore } = await import('../lib/trust-score')
+
+  let trustScoreCount = 0
+  for (const vehicle of vehicles.slice(0, 10)) {
+    try {
+      await updateAssetTrustScore(vehicle.id)
+      trustScoreCount++
+    } catch (error) {
+      console.warn(`⚠ Warning: Could not calculate trust score for ${vehicle.vehicleId}`)
+    }
+  }
+
+  console.log(`✓ Calculated ${trustScoreCount} asset trust scores`)
+
+  // ============================================================================
   // CREATE AUDIT LOGS
   // ============================================================================
 
@@ -2090,6 +2194,8 @@ async function main() {
   console.log('  • 4 Surplus Cases (with approvals)')
   console.log('  • 11 Maintenance Plans')
   console.log('  • 8 Work Orders')
+  console.log(`  • ${ledgerEvents.length} Immutable Ledger Events`)
+  console.log(`  • ${trustScoreCount} Asset Trust Scores`)
   console.log('  • 11 Audit Logs')
   console.log('\n🔐 TEST CREDENTIALS:')
   console.log('  Password for all users: password123')
@@ -2117,6 +2223,9 @@ async function main() {
   console.log('    • driver4@fleet.gov         (DRIVER)')
   console.log('    • driver5@fleet.gov         (DRIVER)')
   console.log('\n💡 KEY FEATURES TO TEST:')
+  console.log('  • Asset Trust Scores (comprehensive operational trust metrics)')
+  console.log('  • Immutable Ledger (cryptographically verified event history)')
+  console.log('  • Work Order Completion (generates ledger events, updates trust scores)')
   console.log('  • Compliance alerts (expiring insurance, CDL, medical certs)')
   console.log('  • Surplus workflow (vehicles pending review/approval)')
   console.log('  • Incident management (various severities and statuses)')

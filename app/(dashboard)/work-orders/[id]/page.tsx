@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { WorkOrderStatusBadge } from '@/components/work-orders/work-order-status-badge'
-import { getWorkOrderById } from '@/lib/actions/work-orders'
+import { getWorkOrderById, completeWorkOrder } from '@/lib/actions/work-orders'
 import { getAssetLedgerEvents } from '@/lib/actions/ledger'
-import { ArrowLeft, Calendar, DollarSign, Wrench } from 'lucide-react'
+import { ArrowLeft, Calendar, DollarSign, Wrench, CheckCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { LedgerEventType } from '@prisma/client'
+import { CompleteWorkOrderForm } from '@/components/work-orders/complete-work-order-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,12 +49,17 @@ async function WorkOrderDetails({ id }: { id: string }) {
               Created {format(new Date(workOrder.createdAt), 'MMMM d, yyyy')}
             </p>
           </div>
-          <Link href="/work-orders">
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Work Orders
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {workOrder.status !== 'COMPLETED' && workOrder.status !== 'CANCELLED' && (
+              <CompleteWorkOrderForm workOrderId={id} />
+            )}
+            <Link href="/work-orders">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Work Orders
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Main Details */}
